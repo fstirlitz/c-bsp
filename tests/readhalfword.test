@@ -1,0 +1,7 @@
+	readhalfword #0
+	readhalfword #1
+	xor #0, #1
+	exit #0
+;;;; data
+01 ff 02 ff
+;;;; exit 3

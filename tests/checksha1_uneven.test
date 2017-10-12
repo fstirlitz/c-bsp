@@ -1,0 +1,8 @@
+	fillbyte 60, 0
+	checksha1 #0, hash
+	checksha1 #0, hash
+	truncate 0
+	retz #0
+	exit 1
+hash:
+	hexdata fb3d8fb74570a077e332993f7d3d27603501b987

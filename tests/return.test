@@ -1,0 +1,5 @@
+	push target
+	return
+	exit 1
+target:
+	exit 0

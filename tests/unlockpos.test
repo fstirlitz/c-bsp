@@ -1,0 +1,9 @@
+	lockpos
+	writeword 0x11223344
+	writehalfword 0x1234
+	unlockpos
+	writehalfword 0xaabb
+	writehalfword 0xccdd
+	exit #0
+;;;; target
+bb aa dd cc

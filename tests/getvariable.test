@@ -1,0 +1,5 @@
+	set #1, 137
+	set #2, 1
+	getvariable #0, #2
+	exit #0
+;;;; exit 137

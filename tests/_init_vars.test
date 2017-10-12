@@ -1,0 +1,11 @@
+	set #0, 2
+loop:
+	getvariable #1, #0
+	ifne #1, 0, error
+	increment #0
+	ifne #0, 256, loop
+
+	exit 0
+
+error:
+	exit 1

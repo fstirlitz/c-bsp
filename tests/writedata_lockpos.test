@@ -1,0 +1,20 @@
+	writedata data0, 6
+	lockpos
+	writedata data1, 6
+	writedata data2, 6
+	unlockpos
+	writedata data3, 6
+	writedata data4, 6
+	exit 0
+data0:
+	hexdata 001122334455
+data1:
+	hexdata 66778899aabb
+data2:
+	hexdata ccddeeff0102
+data3:
+	hexdata 030405060708
+data4:
+	hexdata 090a0b0c0d0e
+;;;; target
+001122334455 030405060708 090a0b0c0d0e

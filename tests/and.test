@@ -1,0 +1,4 @@
+	and #0, 0x55aa55ac, 0xaa55aa57
+	exit #0
+;;;; exit 4
+

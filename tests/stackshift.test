@@ -1,0 +1,7 @@
+	stackshift 10
+	stackshift 20
+	stackshift 30
+	stackshift -15
+	getstacksize #0
+	exit #0
+;;;; exit 45

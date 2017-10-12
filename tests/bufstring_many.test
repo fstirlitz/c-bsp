@@ -1,0 +1,7 @@
+loop:
+	bufstring str
+	increment #0
+	ifne #0, 256, loop
+	exit #1
+str:
+	string "test"

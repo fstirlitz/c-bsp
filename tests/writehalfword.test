@@ -1,0 +1,4 @@
+	writehalfword 0x1234
+	exit 0
+;;;; target
+34 12

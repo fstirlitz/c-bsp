@@ -1,0 +1,6 @@
+	ipspatch #0, patch
+	exit #0
+patch:
+	db "PATCL"
+	db "EOF"
+;;;; fatal

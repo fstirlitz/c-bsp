@@ -1,0 +1,5 @@
+	seek 10
+	seek 50
+	pos #0
+	exit #0
+;;;; exit 50

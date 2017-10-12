@@ -1,0 +1,6 @@
+	writedata data, 6
+	exit 0
+data:
+	hexdata 001122334455
+;;;; target
+00 11 22 33 44 55

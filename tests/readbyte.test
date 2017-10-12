@@ -1,0 +1,7 @@
+	readbyte #0
+	readbyte #1
+	xor #0, #1
+	exit #0
+;;;; data
+01 02
+;;;; exit 3

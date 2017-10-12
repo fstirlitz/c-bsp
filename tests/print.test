@@ -1,0 +1,6 @@
+	print hello
+	exit 0
+hello:
+	string "Hello, world!"
+;;;; output
+Hello, world!

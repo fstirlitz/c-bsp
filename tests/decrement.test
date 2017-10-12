@@ -1,0 +1,4 @@
+	set #0, 2
+	decrement #0
+	exit #0
+;;;; exit 1

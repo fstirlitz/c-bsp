@@ -1,0 +1,3 @@
+	subtract #0, 16, 9
+	exit #0
+;;;; exit 7

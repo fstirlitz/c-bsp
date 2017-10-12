@@ -1,0 +1,4 @@
+	set #0, 0
+	increment #0
+	exit #0
+;;;; exit 1

@@ -1,0 +1,8 @@
+	bufchar 0x54
+	bufchar 0x395
+	bufchar 0x20b7
+	bufchar 0x1d683
+	printbuf
+	exit 0
+;;;; output
+TΕ₷𝚃

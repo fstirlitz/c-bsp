@@ -1,0 +1,4 @@
+	writeword 0xdeadcafe
+	exit 0
+;;;; target
+fe ca ad de

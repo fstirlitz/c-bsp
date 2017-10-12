@@ -1,0 +1,6 @@
+	checksha1 #0, hash
+	checksha1 #0, hash
+	retz #0
+	exit 1
+hash:
+	hexdata da39a3ee5e6b4b0d3255bfef95601890afd80709

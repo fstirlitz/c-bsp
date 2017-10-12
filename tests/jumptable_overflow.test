@@ -1,0 +1,4 @@
+	decrement #0
+	jumptable #0
+	exit #1
+;;;; fatal

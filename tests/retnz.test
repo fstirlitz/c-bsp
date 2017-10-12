@@ -1,0 +1,9 @@
+	push target
+	set #0, 0
+	retnz #0
+	set #0, -1
+	retnz #0
+	exit 1
+target:
+	increment #0
+	exit #0

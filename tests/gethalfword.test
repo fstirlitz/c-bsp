@@ -1,0 +1,5 @@
+	gethalfword #0, addr
+	xor #0, 0xf00d
+	exit #0
+addr:
+	db 0x0d, 0xf0

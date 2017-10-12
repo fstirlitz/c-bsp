@@ -1,0 +1,214 @@
+#!/usr/bin/python3
+import sys
+import codecs
+import glob
+import tempfile
+import pathlib
+import subprocess
+
+replace = False
+verbose = False
+
+argv = sys.argv[1:]
+try:
+	if argv[0] == '-replace':
+		replace = True
+		argv = argv[1:]
+	elif argv[0] == '-verbose':
+		verbose = True
+		argv = argv[1:]
+except IndexError:
+	pass
+
+try:
+	testfile = open(argv[0], 'rt')
+except IndexError:
+	testfile = sys.stdin
+
+in_source    = []
+in_data      = bytearray()
+in_choices   = []
+expect_msg   = []
+expect_data  = in_data
+expect_fatal = False
+expect_exit  = 0
+
+mode = 'source'
+for line in testfile:
+	if line.startswith(';;;#'):
+		continue
+	if line.startswith(';;;;'):
+		line = line[len(';;;;'):].strip()
+		sect, _, param = line.partition(' ')
+
+		if sect == 'source':
+			mode = 'source'
+		elif sect == 'output':
+			mode = 'output'
+		elif sect == 'data':
+			mode = 'data'
+		elif sect == 'target':
+			mode = 'target'
+			if expect_data is in_data:
+				expect_data = bytearray()
+		elif sect == 'comment':
+			mode = 'comment'
+		elif sect == 'choose':
+			in_choices.append(int(param.strip(), 0))
+		elif sect == 'fatal':
+			expect_fatal = True
+		elif sect == 'exit':
+			expect_exit = int(param.strip(), 0)
+		else:
+			print(f"=== Invalid section: {repr(line)} ===")
+			sys.exit(1)
+		continue
+
+	if mode == 'comment':
+		continue
+	elif mode == 'source':
+		in_source.append(line)
+	elif mode == 'output':
+		expect_msg.append(line)
+	elif mode == 'data':
+		in_data += bytes.fromhex(line.strip())
+	elif mode == 'target':
+		expect_data += bytes.fromhex(line.strip())
+	else:
+		print("=== No mode ===")
+		sys.exit(1)
+
+if expect_msg is not None:
+	expect_msg = ''.join(expect_msg)
+
+in_source = ''.join(in_source).encode('utf-8')
+
+fname_tmpdir = pathlib.Path(tempfile.mkdtemp())
+fname_bsp    = fname_tmpdir / 'bsp'
+fname_input  = (fname_tmpdir / 'input') if in_data else '/dev/null'
+fname_target = fname_tmpdir / 'output'
+
+# compile
+if verbose:
+	print("=== Compiling ===")
+
+compiler = subprocess.Popen(
+	['bspcomp/bspcomp', '/dev/stdin', fname_bsp],
+	stdin=subprocess.PIPE
+)
+compiler.stdin.write(in_source)
+compiler.stdin.close()
+if compiler.wait() != 0:
+	print("=== Compilation error ===")
+	sys.exit(1)
+
+# prepare input
+if in_data:
+	with open(fname_input, 'wb') as f:
+		f.write(in_data)
+
+if verbose:
+	print("=== Running ===")
+
+interpreter = subprocess.Popen(
+	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', fname_bsp, fname_input, fname_target],
+	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+)
+for ch in in_choices:
+	interpreter.stdin.write(b'%u\n' % (ch))
+interpreter.stdin.write(b'q\n')
+
+(actual_msg, actual_err) = interpreter.communicate()
+
+actual_msg = actual_msg.decode('utf-8')
+if actual_msg and not actual_msg.endswith('\n'):
+	actual_msg += '\n'
+actual_exit = interpreter.returncode
+actual_fatal = (actual_exit == 255)
+
+try:
+	with open(fname_target, 'rb') as f:
+		actual_data = f.read()
+except FileNotFoundError:
+	actual_data = None
+
+def rm_rf(node):
+	if node.is_dir():
+		for child in node.iterdir():
+			rm_rf(child)
+		node.rmdir()
+	else:
+		node.unlink()
+
+rm_rf(fname_tmpdir)
+
+discrepancy = False
+
+if verbose:
+	print("=== Standard error ===")
+	print(actual_err.decode('utf-8'))
+
+if verbose or (expect_msg != actual_msg):
+	if expect_msg is not None:
+		print("=== Expected output ===")
+		print(expect_msg)
+	else:
+		print("=== (No expected output) ===")
+	print("=== Actual output ===")
+	print(actual_msg)
+	if expect_msg != actual_msg:
+		discrepancy = True
+
+if verbose or (expect_data != actual_data and actual_data is not None):
+	print("=== Expected final data ===")
+	print(expect_data.hex())
+	if actual_data is not None:
+		print("=== Actual final data ===")
+		print(actual_data.hex())
+	if expect_data != actual_data:
+		discrepancy = True
+
+if verbose or (expect_exit != actual_exit and not expect_fatal):
+	print(f"=== Exit code: {actual_exit} ===")
+	if expect_exit != actual_exit:
+		print(f"=== Expected exit code: {expect_exit} ===")
+		discrepancy = True
+
+if expect_fatal != actual_fatal:
+	if expect_fatal:
+		print("=== Expected fatal error didn't happen ===")
+	else:
+		print("=== Unexpected fatal error ===")
+	discrepancy = True
+elif verbose and actual_fatal:
+	print("=== Fatal error message ===")
+	print(actual_err.decode('utf-8'))
+
+if discrepancy:
+	if replace:
+		import os
+		oldname = argv[0]
+		newname = argv[0] + '.new'
+		testfile = open(oldname, 'rt')
+		newfile  = open(newname, 'wt')
+		skip = False
+		for line in testfile:
+			if line.startswith(';;;;'):
+				sect, _, param = line[len(';;;;'):].strip().partition(' ')
+				skip = (sect == 'output') or (sect == 'target') or (sect == 'exit') or (sect == 'fatal')
+			if not skip:
+				newfile.write(line)
+		if actual_msg:
+			newfile.write(';;;; output\n')
+			newfile.write(actual_msg)
+		if actual_data != in_data:
+			newfile.write(';;;; target\n')
+			newfile.write(actual_data.hex() + '\n')
+		if actual_fatal:
+			newfile.write(';;;; fatal\n')
+		elif actual_exit:
+			newfile.write(';;;; exit %u\n' % (actual_exit))
+		os.unlink(oldname)
+		os.rename(newname, oldname)
+
+	sys.exit(1)

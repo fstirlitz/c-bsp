@@ -1,0 +1,4 @@
+	writebyte 0xee
+	exit 0
+;;;; target
+ee

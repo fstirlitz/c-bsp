@@ -1,0 +1,13 @@
+	seek 5
+	truncatepos
+	seek 0
+	length #0
+	bufnumber #0
+	printbuf
+	exit 0
+;;;; data
+00 00 00 00 00 00 00 00 00 00 00 00 00
+;;;; target
+00 00 00 00 00
+;;;; output
+5

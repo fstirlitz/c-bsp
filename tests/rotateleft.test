@@ -1,0 +1,3 @@
+	rotateleft #0, 0xdeadface, 16
+	xor #0, 0xfacedead
+	exit #0

@@ -1,0 +1,4 @@
+	set #0, 5
+	longmulacum #0, #0, 3, 7
+	exit #0
+;;;; exit 26

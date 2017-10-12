@@ -1,0 +1,9 @@
+	set #1, addr
+	getbytedec #2, #1
+	getbytedec #3, #1
+	xor #2, #3
+	exit #2
+	db 0xfe
+addr:
+	db 0xed
+;;;; exit 19

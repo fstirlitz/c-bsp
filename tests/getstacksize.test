@@ -1,0 +1,7 @@
+	push #0
+	push #0
+	push #0
+	push #0
+	getstacksize #0
+	exit #0
+;;;; exit 4

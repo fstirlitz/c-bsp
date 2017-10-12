@@ -1,0 +1,36 @@
+	menu #0, menu
+	shiftleft #1, #0, 2
+	add #1, menu
+	getword #2, #1
+	print #2
+	exit #0
+menu:
+	dw .zero
+	dw .one
+	dw .two
+	dw .three
+	dw .four
+	dw .five
+	dw -1
+.zero:
+	string "zero"
+.one:
+	string "one"
+.two:
+	string "two"
+.three:
+	string "three"
+.four:
+	string "four"
+.five:
+	string "five"
+;;;; choose 3
+;;;; output
+0. zero
+1. one
+2. two
+3. three
+4. four
+5. five
+[0..5, q to abort]? three
+;;;; exit 3

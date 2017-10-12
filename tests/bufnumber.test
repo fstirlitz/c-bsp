@@ -1,0 +1,11 @@
+	bufnumber 0
+	printbuf
+	bufnumber 42
+	printbuf
+	bufnumber -1
+	printbuf
+	exit 0
+;;;; output
+0
+42
+4294967295

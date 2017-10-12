@@ -1,0 +1,7 @@
+	bufnumber 10
+	clearbuf
+	bufnumber 20
+	printbuf
+	exit 0
+;;;; output
+20

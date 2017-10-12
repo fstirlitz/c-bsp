@@ -1,0 +1,10 @@
+loop:
+	push #0
+	increment #0
+	ifne #0, 256, loop
+	pop #0
+	pop #0
+	pop #0
+	pop #0
+	exit #0
+;;;; exit 252

@@ -1,0 +1,16 @@
+	bufstring t
+	bufstring e
+	bufstring s
+	bufstring t_
+	printbuf
+	exit #0
+t:
+	db 0x54, 0
+e:
+	db 0xce, 0x95, 0
+s:
+	db 0xe2, 0x82, 0xb7, 0
+t_:
+	db 0xf0, 0x9d, 0x9a, 0x83, 0
+;;;; output
+TΕ₷𝚃

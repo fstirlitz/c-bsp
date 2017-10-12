@@ -1,0 +1,4 @@
+	push 5
+	pop #0
+	exit #0
+;;;; exit 5

@@ -1,0 +1,13 @@
+	push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	stackwrite 1, 12
+	pop #0
+	pop #0
+	exit #0
+;;;; exit 12

@@ -1,0 +1,13 @@
+	bufstring str
+	subtract #1, child_end, child
+	bsppatch #0, child, #1
+	exit 0
+child:
+	printbuf
+	exit 0
+child_end:
+str:
+	string "Hello"
+;;;; output
+
+;;;; exit 0

@@ -49,7 +49,7 @@ Notes on implementation:
 
 - An interactive debugger.
 - A graphical interface.
-- A test suite.
+- A better test suite.
 - Rewrite It In Rust™.
 - Batch/non-interactive mode?
 - Interactive disassembler?

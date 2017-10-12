@@ -1,0 +1,3 @@
+	print 0x8000
+	exit 0
+;;;; fatal

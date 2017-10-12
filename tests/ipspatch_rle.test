@@ -1,0 +1,19 @@
+	writeword 0xbabababa
+	ipspatch #0, patch
+	subtract #0, patch_end
+	exit #0
+patch:
+	db "PATCH"
+	; offset 8
+	db 0, 0, 8
+	; RLE chunk
+	dh 0
+	; 16 repetitions
+	db 0, 16
+	; value to repeat
+	db 0xda
+	; end
+	db "EOF"
+patch_end:
+;;;; target
+babababa0000000000000000dadadadadadadadadadadadadadadada

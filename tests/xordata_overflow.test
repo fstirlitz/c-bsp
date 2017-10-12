@@ -1,0 +1,8 @@
+	xordata data, 6
+	exit 0
+data:
+	hexdata 55aa55aa55aa
+;;;; data
+aa 55 aa
+;;;; target
+ff ff ff aa 55 aa

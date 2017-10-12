@@ -2,3 +2,8 @@
 bsp
 bspdis
 deps.mak
+
+# gcov
+*.gcno
+*.gcda
+*.gcov

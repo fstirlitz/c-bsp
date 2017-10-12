@@ -1,0 +1,3 @@
+	or #0, 0x55aa55aa, 0xaa55aa55
+	increment #0
+	exit #0

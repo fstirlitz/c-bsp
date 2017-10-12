@@ -1,0 +1,7 @@
+	lockpos
+	writeword 0x11223344
+	writehalfword 0x1234
+	pos #0
+	exit #0
+;;;; target
+34 12 22 11

@@ -1,0 +1,8 @@
+	ipspatch #0, patch
+	subtract #0, patch_end
+	exit #0
+patch:
+	db "PATCH"
+	db "EOF"
+patch_end:
+

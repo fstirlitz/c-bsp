@@ -1,0 +1,17 @@
+	writeword 0xbabababa
+	ipspatch #0, patch
+	subtract #0, patch_end
+	exit #0
+patch:
+	db "PATCH"
+	; offset 8
+	db 0, 0, 8
+	; 16 bytes
+	db 0, 16
+	; value to repeat
+	db "0123456789ABCDEF"
+	; end
+	db "EOF"
+patch_end:
+;;;; target
+babababa000000000000000030313233343536373839414243444546

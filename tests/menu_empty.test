@@ -1,0 +1,5 @@
+	menu #0, empty
+	increment #0
+	exit #0
+empty:
+	dw -1

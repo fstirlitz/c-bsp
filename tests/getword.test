@@ -1,0 +1,5 @@
+	getword #0, addr
+	xor #0, 0xdeadcafe
+	exit #0
+addr:
+	db 0xfe, 0xca, 0xad, 0xde

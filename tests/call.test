@@ -1,0 +1,5 @@
+	call next
+next:
+	pop #0
+	subtract #0, next
+	exit #0

@@ -1,0 +1,10 @@
+	set #0, 1
+	jumptable #0
+	dw target1
+	dw target0
+	dw target1
+	db 0xf0, 0xe0, 0xd0, 0xc0, 0xb0
+target1:
+	exit 1
+target0:
+	exit 0

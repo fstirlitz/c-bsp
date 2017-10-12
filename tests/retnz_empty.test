@@ -1,0 +1,3 @@
+	set #0, 1
+	retnz #0
+	exit 1

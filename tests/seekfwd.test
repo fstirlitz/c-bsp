@@ -1,0 +1,6 @@
+	seekfwd 10
+	seekfwd 20
+	seekfwd 30
+	pos #0
+	exit #0
+;;;; exit 60

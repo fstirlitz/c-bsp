@@ -1,0 +1,6 @@
+	setstacksize 200
+	getstacksize #0
+	pop #1
+	add #0, #1
+	exit #0
+;;;; exit 200

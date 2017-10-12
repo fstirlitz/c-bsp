@@ -1,0 +1,5 @@
+	set #0, 0
+	jump exit
+	set #0, 1
+exit:
+	exit #0

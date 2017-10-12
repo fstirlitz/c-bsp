@@ -1,0 +1,6 @@
+	seek 60
+	seekback 10
+	seekback 20
+	seekback 30
+	pos #0
+	exit #0

@@ -1,0 +1,5 @@
+	push 50
+	lockpos
+	poppos
+	pos #0
+	exit #0

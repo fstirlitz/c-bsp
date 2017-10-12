@@ -1,0 +1,7 @@
+	readword #0
+	readword #1
+	xor #0, #1
+	exit #0
+;;;; data
+01 ff ee dd 02 ff ee dd
+;;;; exit 3

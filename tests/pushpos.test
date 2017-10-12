@@ -1,0 +1,6 @@
+	seek 60
+	pushpos
+	pop #0
+	pos #1
+	subtract #0, #1
+	exit #0

@@ -1,0 +1,10 @@
+	push 1
+	push 2
+	push 3
+	subtract #1, child_end, child
+	bsppatch #0, child, #1
+	exit #0
+child:
+	getstacksize #0
+	exit #0
+child_end:

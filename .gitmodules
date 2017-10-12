@@ -1,0 +1,3 @@
+[submodule "bspcomp"]
+	path = bspcomp
+	url = git@github.com:aaaaaa123456789/bsp

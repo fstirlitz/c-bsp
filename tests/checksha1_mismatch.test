@@ -1,0 +1,8 @@
+	checksha1 #0, hash
+	checksha1 #0, hash
+	exit #0
+hash:
+	hexdata bb4fc61dcdc5e8a2dabede0f3b482cd9aea9434d
+;;;; data
+68 65 6c 6c 6f
+;;;; exit 19

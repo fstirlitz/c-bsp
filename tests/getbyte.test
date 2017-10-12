@@ -1,0 +1,5 @@
+	getbyte #0, addr
+	exit #0
+addr:
+	db 69
+;;;; exit 69
