@@ -75,7 +75,7 @@ static void bsp_exec_step(struct bsp_ec *ec, struct bsp_vm *vm) {
 	if (vm->cb != NULL && vm->cb->exec != NULL) {
 		vm->cb->exec(ec, vm, &opc);
 	}
-	(*handler)(ec, vm, vm->io, src, dst);
+	(*handler)(ec, vm, src, dst);
 	if (vm->cb != NULL && vm->cb->postexec != NULL) {
 		vm->cb->postexec(ec, vm, &opc);
 	}

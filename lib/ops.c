@@ -14,7 +14,6 @@
 	static void func ( \
 		struct bsp_ec *ec __attribute__((unused)), \
 		struct bsp_vm *vm __attribute__((unused)), \
-		struct bsp_io *io __attribute__((unused)), \
 		const uint32_t src[] __attribute__((unused)), \
 		uint32_t *(dst[]) __attribute__((unused)) \
 	)
@@ -180,7 +179,7 @@ OPFUNC(op_jump) {
 	OPFUNC(func) { \
 		if (!(src[0] pred)) \
 			return; \
-		return target(ec, vm, io, src + 1, dst); \
+		return target(ec, vm, src + 1, dst); \
 	}
 
 OP_CONDFLOW(op_jumpz , == 0, op_jump)
@@ -389,7 +388,7 @@ OP_MOVS(op_getworddec    , 32, -4)
 
 /* length #reg */
 OPFUNC(op_length) {
-	off_t len = bsp_io_length(ec, io);
+	off_t len = bsp_io_length(ec, vm->io);
 	if (len > 0xffffffff)
 		bsp_die(ec, "the file is larger than 4 GiB");
 	*(dst[0]) = len;
@@ -398,7 +397,7 @@ OPFUNC(op_length) {
 /* checksha1 #reg, addr */
 OPFUNC(op_checksha1) {
 	const uint8_t *target_sha1 = bsp_ps_getp(ec, vm->ps, src[0], 20);
-	const uint8_t *actual_sha1 = bsp_io_sha1(ec, io);
+	const uint8_t *actual_sha1 = bsp_io_sha1(ec, vm->io);
 
 	*(dst[0]) = 0;
 	for (size_t i = 0; i < 20; ++i) {
@@ -411,7 +410,7 @@ OPFUNC(op_checksha1) {
 #define OP_READFUNC(func, b) \
 	OPFUNC(func) { \
 		uint8_t datum[b / 8]; \
-		if (bsp_io_read(ec, io, datum, sizeof(datum)) < sizeof(datum)) \
+		if (bsp_io_read(ec, vm->io, datum, sizeof(datum)) < sizeof(datum)) \
 			bsp_die(ec, "attempt to read beyond end of file"); \
 		*(dst[0]) = get_le ## b (datum); \
 	}
@@ -419,7 +418,7 @@ OPFUNC(op_checksha1) {
 #define OP_PEEKFUNC(func, b) \
 	OPFUNC(func) { \
 		uint8_t datum[b / 8]; \
-		if (bsp_io_pread(ec, io, datum, sizeof(datum), bsp_io_tell(ec, io)) < sizeof(datum)) \
+		if (bsp_io_pread(ec, vm->io, datum, sizeof(datum), bsp_io_tell(ec, vm->io)) < sizeof(datum)) \
 			bsp_die(ec, "attempt to read beyond end of file"); \
 		*(dst[0]) = get_le ## b (datum); \
 	}
@@ -428,7 +427,7 @@ OPFUNC(op_checksha1) {
 	OPFUNC(func) { \
 		uint8_t datum[b / 8]; \
 		put_le ## b (datum, src[0]); \
-		bsp_io_write(ec, io, &datum, sizeof(datum)); \
+		bsp_io_write(ec, vm->io, &datum, sizeof(datum)); \
 	}
 
 OP_READFUNC(op_readbyte       , 8)
@@ -468,14 +467,14 @@ OPFUNC(op_ipspatch) {
 			uint8_t datum = *bsp_ps_getp(ec, vm->ps, addr + 2, 1);
 			addr += 3;
 
-			bsp_io_pfill(ec, io,
+			bsp_io_pfill(ec, vm->io,
 				datum, 1, count,
-				bsp_io_tell(ec, io) + offset
+				bsp_io_tell(ec, vm->io) + offset
 			);
 		} else {
-			bsp_io_pwrite(ec, io,
+			bsp_io_pwrite(ec, vm->io,
 				bsp_ps_getp(ec, vm->ps, addr, length), length,
-				bsp_io_tell(ec, io) + offset
+				bsp_io_tell(ec, vm->io) + offset
 			);
 			addr += length;
 		}
@@ -491,7 +490,7 @@ OPFUNC(op_bsppatch) {
 	child_ps.size = src[1];
 
 	struct bsp_vm child_vm;
-	bsp_init(ec, &child_vm, &child_ps, io);
+	bsp_init(ec, &child_vm, &child_ps, vm->io);
 
 	child_vm.top = vm->top;
 	child_vm.parent = vm;
@@ -517,12 +516,12 @@ OPFUNC(op_xordata) {
 	const uint8_t *datap = bsp_ps_getp(ec, vm->ps, src[0], length);
 	uint8_t buffer[2048];
 
-	off_t offset = bsp_io_tell(ec, io);
+	off_t offset = bsp_io_tell(ec, vm->io);
 
 	while (length > 0) {
-		size_t got = bsp_io_pread(ec, io, buffer, min32(length, sizeof(buffer)), offset);
+		size_t got = bsp_io_pread(ec, vm->io, buffer, min32(length, sizeof(buffer)), offset);
 		if (got == 0) {
-			bsp_io_pwrite(ec, io, datap, length, offset);
+			bsp_io_pwrite(ec, vm->io, datap, length, offset);
 			offset += length;
 			break;
 		}
@@ -531,19 +530,19 @@ OPFUNC(op_xordata) {
 			buffer[i] ^= *datap++;
 		}
 
-		bsp_io_pwrite(ec, io, buffer, got, offset);
+		bsp_io_pwrite(ec, vm->io, buffer, got, offset);
 		length -= got;
 		offset += got;
 	}
 
-	bsp_io_seek(ec, io, offset, BSP_WHENCE_SET);
+	bsp_io_seek(ec, vm->io, offset, BSP_WHENCE_SET);
 }
 
 /* writedata addr, len */
 OPFUNC(op_writedata) {
 	uint32_t length = src[1];
 	const uint8_t *datap = bsp_ps_getp(ec, vm->ps, src[0], length);
-	bsp_io_write(ec, io, datap, length);
+	bsp_io_write(ec, vm->io, datap, length);
 }
 
 /* fill* value, addr, len */
@@ -551,7 +550,7 @@ OPFUNC(op_writedata) {
 	OPFUNC(func) { \
 		size_t count = src[0]; \
 		uint32_t datum = src[1]; \
-		bsp_io_fill(ec, io, datum, nb, count); \
+		bsp_io_fill(ec, vm->io, datum, nb, count); \
 	}
 
 OP_FILL(op_fillbyte    , 1)
@@ -561,7 +560,7 @@ OP_FILL(op_fillword    , 4)
 /* seek{fwd|back|end} any */
 #define OP_SEEK(func, whence) \
 	OPFUNC(func) { \
-		bsp_io_seek(ec, io, src[0], whence); \
+		bsp_io_seek(ec, vm->io, src[0], whence); \
 	}
 
 OP_SEEK(op_seek    , BSP_WHENCE_SET);
@@ -570,26 +569,26 @@ OP_SEEK(op_seekback, BSP_WHENCE_REWIND);
 OP_SEEK(op_seekend , BSP_WHENCE_END);
 
 OPFUNC(op_lockpos) {
-	bsp_io_lock(ec, io, true);
+	bsp_io_lock(ec, vm->io, true);
 }
 
 OPFUNC(op_unlockpos) {
-	bsp_io_lock(ec, io, false);
+	bsp_io_lock(ec, vm->io, false);
 }
 
 OPFUNC(op_pushpos) {
-	off_t pos = bsp_io_tell(ec, io);
+	off_t pos = bsp_io_tell(ec, vm->io);
 	if (pos > 0xffffffff)
 		bsp_die(ec, "offset larger than 4 GiB");
 	bsp_stk_push(ec, vm, pos);
 }
 
 OPFUNC(op_poppos) {
-	bsp_io_seek(ec, io, bsp_stk_pop(ec, vm), SEEK_SET);
+	bsp_io_seek(ec, vm->io, bsp_stk_pop(ec, vm), SEEK_SET);
 }
 
 OPFUNC(op_pos) {
-	off_t pos = bsp_io_tell(ec, io);
+	off_t pos = bsp_io_tell(ec, vm->io);
 	if (pos > 0xffffffff)
 		bsp_die(ec, "offset larger than 4 GiB");
 	*(dst[0]) = pos;
@@ -597,12 +596,12 @@ OPFUNC(op_pos) {
 
 /* truncate any */
 OPFUNC(op_truncate) {
-	bsp_io_truncate(ec, io, src[0]);
+	bsp_io_truncate(ec, vm->io, src[0]);
 }
 
 /* truncatepos */
 OPFUNC(op_truncatepos) {
-	bsp_io_truncate(ec, io, bsp_io_tell(ec, io));
+	bsp_io_truncate(ec, vm->io, bsp_io_tell(ec, vm->io));
 }
 
 #define MENU_MALLOC_THRESHOLD 0x100
