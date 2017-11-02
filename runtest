@@ -115,7 +115,7 @@ interpreter = subprocess.Popen(
 	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 )
 for ch in in_choices:
-	interpreter.stdin.write(b'%u\n' % (ch))
+	interpreter.stdin.write('{}\n'.format(ch).encode('ascii'))
 interpreter.stdin.write(b'q\n')
 
 (actual_msg, actual_err) = interpreter.communicate()
