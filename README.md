@@ -1,5 +1,7 @@
 # C-BSP
 
+[![Build Status](https://travis-ci.org/fstirlitz/c-bsp.svg?branch=master)](https://travis-ci.org/fstirlitz/c-bsp)
+
 This is a C11 implementation of the [Binary Scripted Patch specification,
 version as of September 2017][spec]. It was developed on Linux/glibc,
 but should be easy to port to other Unix-like systems.
