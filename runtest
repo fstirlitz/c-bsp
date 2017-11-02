@@ -114,9 +114,13 @@ interpreter = subprocess.Popen(
 	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', str(fname_bsp), str(fname_input), str(fname_target)],
 	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 )
-for ch in in_choices:
-	interpreter.stdin.write('{}\n'.format(ch).encode('ascii'))
-interpreter.stdin.write(b'q\n')
+try:
+	for ch in in_choices:
+		interpreter.stdin.write('{}\n'.format(ch).encode('ascii'))
+	interpreter.stdin.write(b'q\n')
+	interpreter.stdin.flush()
+except BrokenPipeError:
+	pass
 
 (actual_msg, actual_err) = interpreter.communicate()
 
