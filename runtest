@@ -60,7 +60,7 @@ for line in testfile:
 		elif sect == 'exit':
 			expect_exit = int(param.strip(), 0)
 		else:
-			print(f"=== Invalid section: {repr(line)} ===")
+			print("=== Invalid section: {} ===".format(repr(line)))
 			sys.exit(1)
 		continue
 
@@ -169,9 +169,9 @@ if verbose or (expect_data != actual_data and actual_data is not None):
 		discrepancy = True
 
 if verbose or (expect_exit != actual_exit and not expect_fatal):
-	print(f"=== Exit code: {actual_exit} ===")
+	print("=== Exit code: {} ===".format(actual_exit))
 	if expect_exit != actual_exit:
-		print(f"=== Expected exit code: {expect_exit} ===")
+		print("=== Expected exit code: {} ===".format(expect_exit))
 		discrepancy = True
 
 if expect_fatal != actual_fatal:
