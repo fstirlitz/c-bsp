@@ -24,24 +24,24 @@ noreturn void bsp_rethrow(struct bsp_ec *ec, struct bsp_ec *child_ec, bsp_ret_t 
 	bsp_return(ec, ret);
 }
 
-noreturn void bsp_diev(struct bsp_ec *ec, const char *fmt, va_list ap) {
+static void format_msg(struct bsp_ec *ec, const char *fmt, va_list ap) {
+	char *msg;
+	if (vasprintf(&msg, fmt, ap) == -1)
+		msg = NULL;
+	ec->fatal_msg = msg;
+}
+
+noreturn void bsp_die(struct bsp_ec *ec, const char *fmt, ...) {
 	if (ec == NULL)
 		abort();
 	if (ec->fatal_msg != NULL)
 		abort();
 
-	char *msg;
-	if (vasprintf(&msg, fmt, ap) == -1)
-		msg = NULL;
-	ec->fatal_msg = msg;
-
-	bsp_return(ec, BSP_RET_FATAL);
-}
-
-noreturn void bsp_die(struct bsp_ec *ec, const char *fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
-	bsp_diev(ec, fmt, ap);
+	format_msg(ec, fmt, ap);
 	va_end(ap);
+
+	bsp_return(ec, BSP_RET_FATAL);
 }

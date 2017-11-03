@@ -32,7 +32,6 @@ inline static struct bsp_ec *_bsp_try(struct bsp_ec *ec) {
 noreturn void bsp_return(struct bsp_ec *ec, bsp_ret_t);
 noreturn void bsp_rethrow(struct bsp_ec *ec, struct bsp_ec *child_ec, bsp_ret_t ret);
 noreturn void bsp_die(struct bsp_ec *ec, const char *fmt, ...);
-noreturn void bsp_diev(struct bsp_ec *ec, const char *fmt, va_list ap);
 void bsp_ec_clear(struct bsp_ec *ec);
 
 #endif
