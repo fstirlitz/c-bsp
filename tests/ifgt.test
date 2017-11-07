@@ -1,0 +1,9 @@
+	set #0, 1
+	set #1, 3
+	set #2, 2
+	ifgt #0, #1, bad
+	ifgt #1, #2, good
+bad:
+	exit 1
+good:
+	exit 0
