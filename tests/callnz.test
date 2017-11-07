@@ -1,0 +1,12 @@
+	set #1, 0
+	set #0, 0
+	callnz #0, target
+	set #0, -1
+	callnz #0, target
+	set #0, 5
+	callnz #0, target
+	exit #1
+target:
+	increment #1
+	return
+;;;; exit 2
