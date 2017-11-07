@@ -1,0 +1,8 @@
+	set #1, addr
+	gethalfwordinc #2, #1
+	gethalfwordinc #3, #1
+	xor #2, #3
+	exit #2
+addr:
+	dh 0xadfe, 0xaded
+;;;; exit 19
