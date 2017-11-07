@@ -7,4 +7,4 @@ before_install:
 script:
 - make all CFLAGS='-ftest-coverage -fprofile-arcs -Wall' LDFLAGS='-ftest-coverage -fprofile-arcs' CC='gcc -std=gnu11'
 - make bspcomp/bspcomp CFLAGS=''
-- make check
+- make coverage && cat Coverage.txt
