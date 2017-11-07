@@ -1,0 +1,5 @@
+	bsppatch #0, child, 0
+	exit #0
+child:
+	exit 0
+;;;; fatal

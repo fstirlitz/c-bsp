@@ -1,0 +1,7 @@
+	subtract #1, child_end, child
+	bsppatch #0, child, #1
+	exit #0
+child:
+	exit 42
+child_end:
+;;;; exit 42

@@ -1,3 +1,5 @@
 	bsppatch #0, 0, end
+	exit 0
 end:
+	exit #0
 ;;;; fatal
