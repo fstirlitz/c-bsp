@@ -142,45 +142,47 @@ rm_rf(fname_tmpdir)
 
 discrepancy = False
 
+if expect_fatal:
+	if not actual_fatal:
+		discrepancy = True
+elif expect_exit != actual_exit:
+	discrepancy = True
+if expect_msg != actual_msg:
+	discrepancy = True
+if actual_data is not None and expect_data != actual_data:
+	discrepancy = True
+
+if discrepancy:
+	verbose = True
+
 if verbose:
 	print("=== Standard error ===")
 	print(actual_err.decode('utf-8'))
 
-if verbose or (expect_msg != actual_msg):
 	if expect_msg is not None:
 		print("=== Expected output ===")
 		print(expect_msg)
 	else:
 		print("=== (No expected output) ===")
-	print("=== Actual output ===")
-	print(actual_msg)
 	if expect_msg != actual_msg:
-		discrepancy = True
+		print("=== Actual output ===")
+		print(actual_msg)
 
-if verbose or (expect_data != actual_data and actual_data is not None):
 	print("=== Expected final data ===")
 	print(expect_data.hex())
-	if actual_data is not None:
+	if expect_data != actual_data and actual_data is not None:
 		print("=== Actual final data ===")
 		print(actual_data.hex())
-	if expect_data != actual_data:
-		discrepancy = True
 
-if verbose or (expect_exit != actual_exit and not expect_fatal):
-	print("=== Exit code: {} ===".format(actual_exit))
-	if expect_exit != actual_exit:
+	if not expect_fatal:
 		print("=== Expected exit code: {} ===".format(expect_exit))
-		discrepancy = True
-
-if expect_fatal != actual_fatal:
-	if expect_fatal:
-		print("=== Expected fatal error didn't happen ===")
+		if actual_fatal:
+			print("=== Unexpected fatal error ===")
+		elif expect_exit != actual_exit:
+			print("=== Actual exit code: {} ===".format(actual_exit))
 	else:
-		print("=== Unexpected fatal error ===")
-	discrepancy = True
-elif verbose and actual_fatal:
-	print("=== Fatal error message ===")
-	print(actual_err.decode('utf-8'))
+		if not actual_fatal:
+			print("=== Expected fatal error did not happen ===")
 
 if discrepancy:
 	if replace:
