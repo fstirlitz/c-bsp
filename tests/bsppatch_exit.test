@@ -1,0 +1,8 @@
+	subtract #1, child_end, child
+	bsppatch #0, child, #1
+	xor #0, 0xdeadface
+	exit #0
+child:
+	exit 0xdeadfade
+child_end:
+;;;; exit 16
