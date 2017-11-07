@@ -1,5 +1,7 @@
 .PHONY: check coverage clean-gcno clean-coverage
 
+PYTHON = python3
+
 clean: clean-gcno clean-coverage
 
 clean-gcno:
@@ -13,7 +15,7 @@ check: bsp bspcomp/bspcomp
 	rm -f *.gcda lib/*.gcda
 	ret=0 ; for test in tests/*.test ; do \
 		echo "--> $$test" ; \
-		./runtest "$$test" || ret=1 ; \
+		$(PYTHON) ./runtest "$$test" || ret=1 ; \
 	done ; exit $$ret
 
 # CFLAGS  += -ftest-coverage -fprofile-arcs
