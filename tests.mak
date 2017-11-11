@@ -5,11 +5,11 @@ PYTHON = python3
 clean: clean-gcno clean-coverage
 
 clean-gcno:
-	rm -f *.gcno lib/*.gcno
+	rm -f src/*.gcno src/*/*.gcno
 
 clean-coverage:
-	rm -f *.gcda lib/*.gcda
-	rm -f *.gcov
+	rm -f src/*.gcda src/*/*.gcda
+	rm -f src/*.gcov
 
 check: bsp bspcomp/bspcomp
 	rm -f *.gcda lib/*.gcda
@@ -22,6 +22,6 @@ check: bsp bspcomp/bspcomp
 # LDFLAGS += -ftest-coverage -fprofile-arcs
 
 coverage: check
-	gcov -f -r *.gcda lib/*.gcda > Coverage.txt
+	gcov -f -r src/*.gcda src/*/*.gcda > Coverage.txt
 
 bspcomp/bspcomp: bspcomp/bspcomp.o

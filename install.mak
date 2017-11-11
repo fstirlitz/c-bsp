@@ -11,6 +11,6 @@ install-bin: all
 	install -Dm0755 bspdis  $(DESTDIR)$(prefix)/bin/bspdis
 
 install-lib: all
-	# install -Dm0644 lib/libbsp.a  $(DESTDIR)$(libdir)/libbsp.a
+	# install -Dm0644 libbsp.a      $(DESTDIR)$(libdir)/libbsp.a
 	# install -dm0755               $(DESTDIR)$(includedir)/libbsp
-	# install -m0644 lib/*.h     -t $(DESTDIR)$(includedir)/libbsp
+	# install -m0644 src/lib/*.h -t $(DESTDIR)$(includedir)/libbsp

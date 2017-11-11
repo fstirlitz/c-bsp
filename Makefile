@@ -11,21 +11,30 @@ PACKAGES  =
 INCLUDES  = # `pkg-config --cflags $(PACKAGES)`
 LIBS      = # `pkg-config --libs $(PACKAGES)`
 
-all: bsp bspdis lib/libbsp.a
+all: bsp bspdis libbsp.a
 
 .PHONY: all clean distclean
 
 clean:
-	rm -f *.o *.a lib/*.o lib/*.a bsp bspdis
+	rm -f *.a src/*.o src/lib/*.o lib/*.a bsp bspdis
 
 distclean: clean
 	rm -f deps.mak
 
-bsp: bsp.o lib/libbsp.a
+bsp: src/bsp.o libbsp.a
 
-bspdis: bspdis.o lib/libbsp.a
+bspdis: src/bspdis.o libbsp.a
 
-lib/libbsp.a: lib/ec.o lib/ps.o lib/vm.o lib/sha1.o lib/ops.o lib/buf.o lib/stk.o lib/io.o lib/dis.o
+libbsp.a: \
+	src/lib/ec.o \
+	src/lib/ps.o \
+	src/lib/vm.o \
+	src/lib/sha1.o \
+	src/lib/ops.o \
+	src/lib/buf.o \
+	src/lib/stk.o \
+	src/lib/io.o \
+	src/lib/dis.o
 
 %.a:
 	$(AR) r '$@' $^
@@ -41,4 +50,4 @@ include deps.mak
 include tests.mak
 
 deps.mak:
-	( for f in *.c lib/*.c; do gcc -E -DMAKEDEPS=1 -I. -MM "$$f" -MT "$${f%.c}.o" $(CPPFLAGS) ; done ) > '$@'
+	( for f in src/*.c src/lib/*.c; do gcc -E -DMAKEDEPS=1 -I. -MM "$$f" -MT "$${f%.c}.o" $(CPPFLAGS) ; done ) > '$@'
