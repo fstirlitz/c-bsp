@@ -22,6 +22,7 @@
 
 static const char *argv0 = NULL;
 static uint32_t insn_limit = 0x800000, insn_count = 0;
+static uint32_t brbk_limit = 0x800000, brbk_count = 0;
 static uint32_t nest_limit = 128;
 
 static void show_usage(void) {
@@ -44,7 +45,9 @@ static void show_usage(void) {
 		"                   (default: %u; -1 to disable)\n"
 		"  -N NEST_LIMIT    set limit of nested BSP patches\n"
 		"                   (default: %u; -1 to disable)\n"
-		"\n", argv0, insn_limit, nest_limit
+		"  -J BRBK_LIMIT    set limit of backward jumps\n"
+		"                   (default: %u; -1 to disable)\n"
+		"\n", argv0, insn_limit, nest_limit, brbk_limit
 	);
 	exit(-1);
 }
@@ -303,6 +306,11 @@ static void postexec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode 
 			fprintf(stderr, INDENT "------\n");
 		}
 	}
+
+	if (vm->pc_next <= vm->pc) {
+		if (++brbk_count > brbk_limit)
+			bsp_die(ec, "backward jump limit (%u) reached", brbk_limit);
+	}
 }
 
 static void fetch_cb(struct bsp_ec *ec, struct bsp_vm *vm) {
@@ -505,6 +513,10 @@ static void parse_cmdline(char *argv[]) {
 
 				case 'N':
 					nest_limit = parse_cmdline_num(TAKE_OPTARG());
+					break;
+
+				case 'J':
+					brbk_limit = parse_cmdline_num(TAKE_OPTARG());
 					break;
 
 				default:
@@ -774,6 +786,11 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "%s: %s: %u instructions executed\n",
 			argv0, patch_fname,
 			insn_count
+		);
+
+		fprintf(stderr, "%s: %s: %u backward jumps\n",
+			argv0, patch_fname,
+			brbk_count
 		);
 	}
 
