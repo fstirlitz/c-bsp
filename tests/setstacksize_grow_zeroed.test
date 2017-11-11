@@ -1,0 +1,14 @@
+	push 1
+	push 2
+	push 4
+	push 8
+	push 16
+	push 32
+	setstacksize 0
+	setstacksize 5
+loop:
+	pop #1
+	or #0, #1
+	getstacksize #2
+	jumpnz #2, loop
+	exit #0
