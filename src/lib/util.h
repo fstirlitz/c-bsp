@@ -65,4 +65,47 @@ inline static uint32_t rol32(uint32_t v, uint8_t count) {
 	return (v << count) | (v >> (32 - count));
 }
 
+#include <errno.h>
+#include <stdlib.h>
+
+inline static void *grow_alloc(void *p, size_t *cap, size_t grow_by, size_t elem_size) {
+	size_t extra = *cap;
+	size_t new_alloc;
+	void *new_buffer;
+
+	if (*cap + grow_by < *cap) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	if ((*cap + grow_by) * elem_size < (*cap + grow_by)) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	while (extra < grow_by) {
+		if (*cap + extra < *cap) {
+			extra = grow_by;
+			break;
+		} else {
+			extra += *cap + extra;
+		}
+	}
+
+	for (;;) {
+		do {
+			if (extra < grow_by)
+				return NULL;
+			new_alloc = *cap + extra;
+			extra >>= 1;
+		} while (new_alloc * elem_size < *cap * elem_size);
+
+		new_buffer = realloc(p, new_alloc * elem_size);
+		if (new_buffer != NULL) {
+			*cap = new_alloc;
+			return new_buffer;
+		}
+	}
+}
+
 #endif
