@@ -1,0 +1,3 @@
+	stackshift 0x1000
+	jump 0
+;;;; fatal

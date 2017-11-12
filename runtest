@@ -110,9 +110,15 @@ if in_data:
 if verbose:
 	print("=== Running ===")
 
+import resource
+
+def set_limits():
+	as_limit = 64 * 1024 * 1024
+	resource.setrlimit(resource.RLIMIT_AS, (as_limit, as_limit))
+
 interpreter = subprocess.Popen(
 	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', str(fname_bsp), str(fname_input), str(fname_target)],
-	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=set_limits
 )
 
 (actual_msg, actual_err) = interpreter.communicate(
