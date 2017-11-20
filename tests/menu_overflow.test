@@ -1,0 +1,12 @@
+	menu #0, menu
+	exit 0
+menu:
+	dw .zero
+	dw .one
+	dw -1
+.zero:
+	string "A"
+.one:
+	hexdata 42
+;;;; choose 0
+;;;; fatal

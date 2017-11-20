@@ -34,6 +34,10 @@ const char *bsp_ps_getsz(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t ad
 
 	const char *p = (const char *)ps->space + addr;
 	*len = strnlen(p, ps->limit - addr);
+
+	if (p[*len])
+		bsp_die(ec, "unterminated string at 0x%x", addr);
+
 	return p;
 }
 

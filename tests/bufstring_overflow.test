@@ -1,4 +1,4 @@
-	print str
+	bufstring str
 	exit 0
 str:
 	hexdata 41
