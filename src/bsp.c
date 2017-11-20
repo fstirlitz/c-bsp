@@ -445,7 +445,7 @@ static void fatal_cb(struct bsp_vm *vm, bsp_ret_t ret, struct bsp_ec *ec) {
 
 			uint32_t off = ps->space - parent_ps->space;
 
-			fprintf(stderr, "(+0x%08x, size 0x%08x)", off, ps->size);
+			fprintf(stderr, "(+0x%08x, limit 0x%08x)", off, ps->limit);
 		} else {
 			fprintf(stderr, "[%s]", patch_fname);
 		}

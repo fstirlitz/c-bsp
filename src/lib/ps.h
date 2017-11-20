@@ -9,7 +9,7 @@
 // Patch space.
 struct bsp_ps {
 	const uint8_t *space;
-	uint32_t size;
+	uint32_t limit;
 };
 
 const uint8_t *bsp_ps_getp(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t addr, uint32_t size);

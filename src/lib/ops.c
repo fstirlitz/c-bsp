@@ -485,9 +485,12 @@ OPFUNC(op_ipspatch) {
 
 /* bsppatch #reg, addr, len */
 OPFUNC(op_bsppatch) {
+	if (!src[1])
+		bsp_die(ec, "child patch space is empty");
+
 	struct bsp_ps child_ps;
 	child_ps.space = bsp_ps_getp(ec, vm->ps, src[0], src[1]);
-	child_ps.size = src[1];
+	child_ps.limit = src[1] - 1;
 
 	struct bsp_vm child_vm;
 	bsp_init(ec, &child_vm, &child_ps, vm->io);

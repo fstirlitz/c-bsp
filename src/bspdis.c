@@ -66,12 +66,12 @@ typedef uint64_t clsword_t;
 #define CLS_MASK ((clsword_t)(1 << BITS_PER_CLS) - 1)
 #define CLS_PER_WORD (sizeof(clsword_t) * CHAR_BIT / BITS_PER_CLS)
 
-#define DIV_ROUND_UP(a, b) (((a) + (b) - 1) / (b))
+#define DIV_ROUND_UP(a, b) ((a) / (b) + !!((a) % (b)))
 
 static clsword_t *clses = NULL;
 
 inline static void cls_init(void) {
-	clses = calloc(DIV_ROUND_UP(patch_space.size, CLS_PER_WORD), sizeof(clsword_t));
+	clses = calloc(DIV_ROUND_UP((uint64_t)patch_space.limit + 1, CLS_PER_WORD), sizeof(clsword_t));
 }
 
 inline static void cls_fini(void) {
@@ -80,14 +80,14 @@ inline static void cls_fini(void) {
 }
 
 inline static cls_t cls_get(uint32_t offset) {
-	if (offset >= patch_space.size)
+	if (offset > patch_space.limit)
 		return CLS_UNKNOWN;
 	clsword_t word = clses[offset / CLS_PER_WORD];
 	return (word >> (BITS_PER_CLS * (offset % CLS_PER_WORD))) & CLS_MASK;
 }
 
 inline static void cls_set(uint32_t offset, cls_t cls) {
-	if (offset >= patch_space.size)
+	if (offset > patch_space.limit)
 		return;
 	clsword_t *word = &clses[offset / CLS_PER_WORD];
 	*word &= ~(CLS_MASK << (BITS_PER_CLS * (offset % CLS_PER_WORD)));
@@ -144,7 +144,7 @@ static void dis_diag(uint32_t off, const char *fmt, ...) {
 }
 
 static void string_add(uint32_t addr) {
-	if (addr >= patch_space.size) {
+	if (addr > patch_space.limit) {
 		dis_diag(addr, "bad string reference");
 		return;
 	}
@@ -160,7 +160,7 @@ static void menu_add(uint32_t addr) {
 	cls_t cls = CLS_WORD_START | CLS_LABELLED;
 
 	for (;;) {
-		if (addr >= patch_space.size) {
+		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
 			dis_diag(addr, "bad menu reference");
 			return;
 		}
@@ -180,7 +180,7 @@ static void menu_add(uint32_t addr) {
 static struct queue_u32 labels = Q_EMPTY;
 
 static void label_add(uint32_t addr) {
-	if (addr >= patch_space.size) {
+	if (addr > patch_space.limit) {
 		dis_diag(addr, "bad control flow beyond the end of the file");
 		return;
 	}
@@ -303,7 +303,7 @@ static void parse_cmdline(char *argv[]) {
 			if (arg == suff || (*suff && *suff != ':'))
 				goto bad_hint;
 
-			if (addr >= patch_space.size) {
+			if (addr > patch_space.limit) {
 				fprintf(stderr, "%s: hint address 0x%lx is too high\n", argv0, addr);
 				exit(-1);
 			}
@@ -452,7 +452,7 @@ static void dis_analyse(void) {
 #include "hexdump.c"
 
 static void dis_print(void) {
-	for (uint32_t offset = 0; offset < patch_space.size; ) {
+	for (uint32_t offset = 0; offset <= patch_space.limit && (offset + 1); ) {
 		cls_t cls = cls_get(offset);
 
 		if (cls & CLS_LABELLED) {

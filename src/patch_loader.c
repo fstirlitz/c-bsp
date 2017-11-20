@@ -35,7 +35,13 @@ static void patch_load(void) {
 
 		for (;;) {
 			if (length == capacity) {
+				if (capacity == 0xffffffff)
+					goto too_large_err;
 				capacity *= 2;
+				if (!capacity)
+					capacity = 0xffffffff;
+				else if ((capacity - 1) > 0xffffffff)
+					goto too_large_err;
 				buf = realloc(buf, capacity);
 				if (buf == NULL) {
 					perror("realloc(ps)");
@@ -46,11 +52,6 @@ static void patch_load(void) {
 
 			ssize_t got = read(patch_fd, bufp, capacity - length);
 
-			if (length + got > 0xffffffff) {
-				fprintf(stderr, "%s: %s: patch file is too large\n", argv0, patch_fname);
-				exit(-1);
-			}
-
 			if (got == -1) {
 				fprintf(stderr, "%s: %s: read: %s\n", argv0, patch_fname, strerror(errno));
 				exit(-1);
@@ -58,26 +59,29 @@ static void patch_load(void) {
 				break;
 			}
 
+			if (length + got - 1 > 0xffffffff)
+				goto too_large_err;
+
 			length += got;
 			bufp += got;
 		}
 
+		if (!length)
+			goto empty_err;
+
 		patch_space.space = buf;
-		patch_space.size = length;
+		patch_space.limit = length - 1;
+
 		return;
 	}
 
-	if (length == 0) {
-		fprintf(stderr, "%s: %s: patch file is empty\n", argv0, patch_fname);
-		exit(-1);
-	}
+	if (!length)
+		goto empty_err;
 
-	if (length > 0xffffffff) {
-		fprintf(stderr, "%s: %s: patch file is too large\n", argv0, patch_fname);
-		exit(-1);
-	}
+	if (length - 1 > 0xffffffff)
+		goto too_large_err;
 
-	patch_space.size = length;
+	patch_space.limit = length - 1;
 	patch_space.space = mmap(NULL, length, PROT_READ, MAP_PRIVATE, patch_fd, 0);
 	if (patch_space.space != MAP_FAILED) {
 		patch_mode = PATCH_MODE_MMAP;
@@ -111,13 +115,23 @@ static void patch_load(void) {
 	}
 
 	close(patch_fd);
+	return;
+
+empty_err:
+	fprintf(stderr, "%s: %s: patch file is empty\n", argv0, patch_fname);
+	exit(-1);
+
+too_large_err:
+	fprintf(stderr, "%s: %s: patch file is too large\n", argv0, patch_fname);
+	exit(-1);
+
 }
 
 static void patch_unload(void) {
 	switch (patch_mode) {
 
 	case PATCH_MODE_MMAP:
-		munmap((void *)patch_space.space, patch_space.size);
+		munmap((void *)patch_space.space, patch_space.limit + 1);
 		return;
 
 	case PATCH_MODE_MALLOC:

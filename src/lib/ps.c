@@ -7,35 +7,33 @@
 #include <stdlib.h>
 
 const uint8_t *bsp_ps_getp(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t addr, uint32_t size) {
-	if ((addr + size) < addr) {
+	if ((addr + size - 1) < addr) {
 		bsp_die(ec, "pointer overflow: "
 			"0x%x + 0x%x", addr, size);
 	}
 
-	if (addr >= ps->size) {
+	if (addr > ps->limit) {
 		bsp_die(ec, "attempt to access data beyond end of BSP space: "
-			"0x%x >= 0x%x",
-			addr, ps->size);
+			"0x%x > 0x%x", addr, ps->limit);
 	}
 
-	if ((addr + size) > ps->size) {
+	if (size && (addr + size - 1) > ps->limit) {
 		bsp_die(ec, "attempt to access data overflowing beyond end of BSP space: "
-			"0x%x + 0x%x = 0x%x > 0x%x",
-			addr, size, addr + size, ps->size);
+			"0x%x + 0x%x - 1 = 0x%x > 0x%x",
+			addr, size, addr + size - 1, ps->limit);
 	}
 
 	return ps->space + addr;
 }
 
 const char *bsp_ps_getsz(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t addr, size_t *len) {
-	if (addr >= ps->size) {
+	if (addr > ps->limit) {
 		bsp_die(ec, "attempt to access data beyond end of BSP space: "
-			"0x%x >= 0x%x",
-			addr, ps->size);
+			"0x%x > 0x%x", addr, ps->limit);
 	}
 
 	const char *p = (const char *)ps->space + addr;
-	*len = strnlen(p, ps->size - addr);
+	*len = strnlen(p, ps->limit - addr);
 	return p;
 }
 
