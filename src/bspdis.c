@@ -143,9 +143,9 @@ static void dis_diag(uint32_t off, const char *fmt, ...) {
 	had_diag = true;
 }
 
-static void string_add(uint32_t addr) {
+static void string_add(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
-		dis_diag(addr, "bad string reference");
+		dis_diag(from, "bad string reference (0x%x)", addr);
 		return;
 	}
 
@@ -156,12 +156,12 @@ static void string_add(uint32_t addr) {
 	} while (patch_space.space[addr++] != 0);
 }
 
-static void menu_add(uint32_t addr) {
+static void menu_add(uint32_t from, uint32_t addr) {
 	cls_t cls = CLS_WORD_START | CLS_LABELLED;
 
 	for (;;) {
 		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
-			dis_diag(addr, "bad menu reference");
+			dis_diag(from, "bad menu reference (0x%x)", addr);
 			return;
 		}
 
@@ -172,16 +172,16 @@ static void menu_add(uint32_t addr) {
 		if (saddr == 0xffffffff)
 			break;
 
-		string_add(saddr);
+		string_add(addr, saddr);
 		addr += 4;
 	}
 }
 
 static struct queue_u32 labels = Q_EMPTY;
 
-static void label_add(uint32_t addr) {
+static void label_add(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
-		dis_diag(addr, "bad control flow beyond the end of the file");
+		dis_diag(from, "bad control flow beyond the end of the file (0x%x)", addr);
 		return;
 	}
 
@@ -189,7 +189,7 @@ static void label_add(uint32_t addr) {
 
 	switch (cls & ~CLS_LABELLED) {
 	default:
-		dis_diag(addr, "bad control flow into a %s", cls_name(cls));
+		dis_diag(from, "bad control flow into a %s at 0x%x", cls_name(cls), addr);
 		return;
 	case CLS_OPCODE:
 		cls_set(addr, CLS_OPCODE | CLS_LABELLED);
@@ -236,7 +236,7 @@ static bool jumptab_grab(void) {
 			continue;
 		case CLS_UNKNOWN:
 		case CLS_OPCODE:
-			label_add(target);
+			label_add(addr, target);
 			jumptabs.data[i] = addr + 4;
 			grabbed = true;
 		}
@@ -333,7 +333,7 @@ static void parse_cmdline(char *argv[]) {
 
 			switch (htyp) {
 			case 0:
-				string_add(addr);
+				string_add(0, addr);
 				break;
 			case 1:
 				cls_set_data(addr, CLS_DATA_START | (label ? CLS_LABELLED : 0), 20);
@@ -345,7 +345,7 @@ static void parse_cmdline(char *argv[]) {
 				cls_set_data(addr, CLS_WORD_START | (label ? CLS_LABELLED : 0), 4);
 				break;
 			case 4:
-				menu_add(addr);
+				menu_add(0, addr);
 				break;
 			default:
 				goto bad_hint;
@@ -408,13 +408,13 @@ static void dis_analyse(void) {
 					cls_set_data(opc.opval[i], CLS_DATA_START | CLS_LABELLED, 20);
 					break;
 				case BSP_OPSEM_PTR_STR:
-					string_add(opc.opval[i]);
+					string_add(ip, opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_CODE:
-					label_add(opc.opval[i]);
+					label_add(ip, opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_MENU:
-					menu_add(opc.opval[i]);
+					menu_add(ip, opc.opval[i]);
 					break;
 				}
 			}
