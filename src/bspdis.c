@@ -366,45 +366,36 @@ static void parse_cmdline(char *argv[]) {
 }
 
 static void dis_analyse(void) {
-	while (!q_empty(&labels)) {
-		uint32_t offset = q_shift(&labels);
+	struct bsp_ec ec;
 
-		for (;;) {
-			uint32_t ip = offset;
+	while (!q_empty(&labels)) {
+		uint32_t ip = q_shift(&labels);
+
+		if (!bsp_try(&ec)) for (;;) {
 			struct bsp_opcode opc;
 
-			cls_t cls = cls_get(offset);
-
+			cls_t cls = cls_get(ip);
 			if ((cls & ~CLS_LABELLED) != CLS_UNKNOWN) {
 				if ((cls & ~CLS_LABELLED) != CLS_OPCODE)
-					dis_diag(offset, "bad control flow into a %s", cls_name(cls));
-				break;
-			}
-
-			struct bsp_ec ec;
-
-			if (bsp_try(&ec)) {
-				dis_diag(ip, "failed to fetch opcode: %s", ec.fatal_msg);
-				bsp_ec_clear(&ec);
+					dis_diag(ip, "bad control flow into a %s", cls_name(cls));
 				break;
 			}
 
 			size_t sz = bsp_ps_fetchop(&ec, &patch_space, ip, &opc);
-			ip += sz;
 
-			uint32_t voffset = offset;
-			while (++voffset < ip) {
-				cls_t vcls = cls_get(voffset);
+			for (size_t i = 0; i < sz; ++i) {
+				cls_t vcls = cls_get(ip + i);
 				if ((vcls & ~CLS_LABELLED) != CLS_UNKNOWN) {
-					dis_diag(offset, "operand spills over into a %s", cls_name(vcls));
+					dis_diag(ip, "operand spills over into a %s", cls_name(vcls));
 					goto next_label;
 				}
 			}
 
 			if ((cls & ~CLS_LABELLED) == CLS_UNKNOWN)
-				cls_set(offset, CLS_OPCODE | (cls & CLS_LABELLED));
-			while (++offset < ip)
-				cls_set(offset, CLS_OPERAND);
+				cls_set(ip, CLS_OPCODE | (cls & CLS_LABELLED));
+			for (size_t i = 1; i < sz; ++i) {
+				cls_set(ip + i, CLS_OPERAND);
+			}
 
 			for (size_t i = 0; i < BSP_OPNUM; ++i) {
 				if (opc.optyp[i] != BSP_OPD_IMM32)
@@ -428,16 +419,22 @@ static void dis_analyse(void) {
 				}
 			}
 
+			ip += sz;
+
 			bsp_opflags_t fl = bsp_op_get_flags(&opc);
 
 			if (fl & BSP_OPFLAG_JUMP_TABLE) {
-				jumptab_add(offset);
+				jumptab_add(ip);
 				break;
 			}
 
 			if (fl & BSP_OPFLAG_STOPS_FLOW)
 				break;
+		} else {
+			dis_diag(ip, "failed to fetch opcode: %s", ec.fatal_msg);
+			bsp_ec_clear(&ec);
 		}
+
 	next_label: ;
 
 		if (q_empty(&labels)) {
