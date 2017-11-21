@@ -150,11 +150,21 @@ static void string_add(uint32_t from, uint32_t addr) {
 		return;
 	}
 
+	uint32_t end = addr;
+	for (;;) {
+		if (!patch_space.space[end])
+			break;
+		if (end++ == patch_space.limit) {
+			dis_diag(from, "bad string reference; no terminating NUL (0x%x)", addr);
+			return;
+		}
+	}
+
 	cls_t cls = CLS_STRING | CLS_LABELLED;
 	do {
 		cls_set(addr, cls);
 		cls = CLS_STRING;
-	} while (patch_space.space[addr++] != 0);
+	} while (addr++ < end);
 }
 
 static void menu_add(uint32_t from, uint32_t addr) {
