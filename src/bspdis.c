@@ -448,19 +448,19 @@ static void dis_analyse(void) {
 
 #include "hexdump.c"
 
-static void dis_print(void) {
+static void dis_print(FILE *outf) {
 	for (uint32_t offset = 0; offset <= patch_space.limit && (offset + 1); ) {
 		cls_t cls = cls_get(offset);
 
 		if (cls & CLS_LABELLED) {
-			printf("%c_%08x:\n",
+			fprintf(outf, "%c_%08x:\n",
 				cls_label_chars[cls & ~CLS_LABELLED],
 				offset
 			);
 		}
 
 		if (dump_opcodes)
-			printf("%08x  ", offset);
+			fprintf(outf, "%08x  ", offset);
 
 		switch (cls & ~CLS_LABELLED) {
 
@@ -474,9 +474,9 @@ static void dis_print(void) {
 			const char *mnemonic = bsp_op_get_mnemonic(&opc);
 			bsp_opsems_t sems = bsp_op_get_sems(&opc);
 
-			fhexdump(stdout, patch_space.space + offset, dump_opcodes ? ip - offset : 0, 12);
+			fhexdump(outf, patch_space.space + offset, dump_opcodes ? ip - offset : 0, 12);
 
-			printf("%-18s ", mnemonic);
+			fprintf(outf, "%-18s ", mnemonic);
 
 			bool comma = false;
 
@@ -485,7 +485,7 @@ static void dis_print(void) {
 					continue;
 
 				if (comma)
-					printf(", ");
+					fprintf(outf, ", ");
 				else
 					comma = true;
 
@@ -495,40 +495,40 @@ static void dis_print(void) {
 				case BSP_OPD_RREG:
 				case BSP_OPD_MREG:
 				case BSP_OPD_WREG:
-					printf("#%u", opc.opval[i]);
+					fprintf(outf, "#%u", opc.opval[i]);
 					continue;
 				case BSP_OPD_IMM8:
-					printf("0x%02x", opc.opval[i]);
+					fprintf(outf, "0x%02x", opc.opval[i]);
 					continue;
 				case BSP_OPD_IMM16:
-					printf("0x%04x", opc.opval[i]);
+					fprintf(outf, "0x%04x", opc.opval[i]);
 					continue;
 				default: ;
 				}
 
 				switch (BSP_OPSEM_AT(sems, i)) {
 				case BSP_OPSEM_PTR_CODE:
-					printf("L_%08x", opc.opval[i]);
+					fprintf(outf, "L_%08x", opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_STR:
-					printf("S_%08x", opc.opval[i]);
+					fprintf(outf, "S_%08x", opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_SHA1:
 				case BSP_OPSEM_PTR_IPS:
 				case BSP_OPSEM_PTR_BSP:
 				case BSP_OPSEM_PTR_MENU:
-					printf("D_%08x", opc.opval[i]);
+					fprintf(outf, "D_%08x", opc.opval[i]);
 					break;
 				case BSP_OPSEM_STACK:
-					printf("%+d", opc.opval[i]);
+					fprintf(outf, "%+d", opc.opval[i]);
 					break;
 				default:
-					printf("0x%08x", opc.opval[i]);
+					fprintf(outf, "0x%08x", opc.opval[i]);
 					break;
 				}
 			}
 
-			printf("\n");
+			fprintf(outf, "\n");
 
 			offset = ip;
 			break;
@@ -538,38 +538,38 @@ static void dis_print(void) {
 			uint32_t offset_start = offset;
 			while (cls_get(++offset) == CLS_STRING);
 
-			fhexdump(stdout, NULL, 0, 12);
+			fhexdump(outf, NULL, 0, 12);
 
-			printf("%-18s ", "string");
-			printf("\"");
+			fprintf(outf, "%-18s ", "string");
+			fprintf(outf, "\"");
 			while (offset_start < offset) {
 				char ch = (char)patch_space.space[offset_start++];
 				if (!ch)
 					break;
-				printf("%c%s", ch, ch == '"' ? "\"" : "");
+				fprintf(outf, "%c%s", ch, ch == '"' ? "\"" : "");
 			}
-			printf("\"\n");
+			fprintf(outf, "\"\n");
 			break;
 		}
 
 		case CLS_WORD_START: {
-			fhexdump(stdout, patch_space.space + offset, dump_opcodes ? 4 : 0, 12);
+			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 4 : 0, 12);
 
 			uint32_t value = get_le32(patch_space.space + offset);
 			offset += 4;
 
-			printf("%-18s 0x%08x\n", "dw", value);
+			fprintf(outf, "%-18s 0x%08x\n", "dw", value);
 			break;
 		}
 
 		/* XXX */
 		case CLS_HALF_START: {
-			fhexdump(stdout, patch_space.space + offset, dump_opcodes ? 2 : 0, 12);
+			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 2 : 0, 12);
 
 			uint16_t value = get_le16(patch_space.space + offset);
 			offset += 2;
 
-			printf("%-18s 0x%04x\n", "dh", value);
+			fprintf(outf, "%-18s 0x%04x\n", "dh", value);
 			break;
 		}
 
@@ -577,26 +577,26 @@ static void dis_print(void) {
 			uint32_t offset_start = offset;
 			while (cls_get(++offset) == CLS_DATA);
 
-			fhexdump(stdout, NULL, 0, 12);
+			fhexdump(outf, NULL, 0, 12);
 
-			printf("%-18s ", "hexdata");
+			fprintf(outf, "%-18s ", "hexdata");
 			while (offset_start < offset) {
-				printf("%02x", patch_space.space[offset_start++]);
+				fprintf(outf, "%02x", patch_space.space[offset_start++]);
 			}
-			printf("\n");
+			fprintf(outf, "\n");
 			break;
 		}
 
 		default: {
-			fhexdump(stdout, NULL, 0, 12);
+			fhexdump(outf, NULL, 0, 12);
 
-			printf("%-18s ", "db");
-			printf("0x%02x", patch_space.space[offset]);
+			fprintf(outf, "%-18s ", "db");
+			fprintf(outf, "0x%02x", patch_space.space[offset]);
 			if (isprint(patch_space.space[offset])) {
-				printf(" ; '%c'", patch_space.space[offset]);
+				fprintf(outf, " ; '%c'", patch_space.space[offset]);
 			}
 			offset++;
-			printf("\n");
+			fprintf(outf, "\n");
 			break;
 		}
 
@@ -609,7 +609,7 @@ int main(int argc, char **argv) {
 	parse_cmdline(argv);
 
 	dis_analyse();
-	dis_print();
+	dis_print(stdout);
 
 	cls_fini();
 	patch_unload();
