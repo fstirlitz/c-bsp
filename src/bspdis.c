@@ -527,17 +527,18 @@ static void dis_print(FILE *outf) {
 
 				switch (BSP_OPSEM_AT(sems, i)) {
 				case BSP_OPSEM_PTR_CODE:
-					fprintf(outf, "L_%08x", opc.opval[i]);
-					break;
 				case BSP_OPSEM_PTR_STR:
-					fprintf(outf, "S_%08x", opc.opval[i]);
-					break;
 				case BSP_OPSEM_PTR_SHA1:
 				case BSP_OPSEM_PTR_IPS:
 				case BSP_OPSEM_PTR_BSP:
-				case BSP_OPSEM_PTR_MENU:
-					fprintf(outf, "D_%08x", opc.opval[i]);
-					break;
+				case BSP_OPSEM_PTR_MENU: {
+					cls_t cls = cls_get(opc.opval[i]);
+					if (cls & CLS_LABELLED) {
+						fprintf(outf, "%c_%08x", cls_label_chars[cls & ~CLS_LABELLED], opc.opval[i]);
+						break;
+					}
+				}
+
 				case BSP_OPSEM_STACK:
 					fprintf(outf, "%+d", opc.opval[i]);
 					break;
