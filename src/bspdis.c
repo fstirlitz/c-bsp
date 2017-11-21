@@ -230,6 +230,11 @@ static bool jumptab_grab(void) {
 	for (size_t i = jumptabs.off; i < jumptabs.fin; ++i) {
 		uint32_t addr = jumptabs.data[i];
 
+		if (addr + 3 < addr)
+			continue;
+		if (addr + 3 > patch_space.limit)
+			continue;
+
 		switch (cls_get(addr) & ~CLS_LABELLED) {
 		default:
 			continue;
