@@ -5,6 +5,7 @@ import glob
 import tempfile
 import pathlib
 import subprocess
+import atexit
 
 replace = False
 verbose = False
@@ -32,6 +33,7 @@ expect_msg   = []
 expect_data  = in_data
 expect_fatal = False
 expect_exit  = 0
+test_dis     = True
 
 mode = 'source'
 for line in testfile:
@@ -57,6 +59,8 @@ for line in testfile:
 			in_choices.append(int(param.strip(), 0))
 		elif sect == 'fatal':
 			expect_fatal = True
+		elif sect == 'skipdis':
+			test_dis = False
 		elif sect == 'exit':
 			expect_exit = int(param.strip(), 0)
 		else:
@@ -84,16 +88,20 @@ if expect_msg is not None:
 in_source = ''.join(in_source).encode('utf-8')
 
 fname_tmpdir = pathlib.Path(tempfile.mkdtemp())
-fname_bsp    = fname_tmpdir / 'bsp'
+fname_bsp0   = fname_tmpdir / 'bsp0'
 fname_input  = (fname_tmpdir / 'input') if in_data else '/dev/null'
 fname_target = fname_tmpdir / 'output'
+fname_dis    = fname_tmpdir / 'dis'
+fname_bsp1   = fname_tmpdir / 'bsp1'
+
+discrepancy = False
 
 # compile
 if verbose:
 	print("=== Compiling ===")
 
 compiler = subprocess.Popen(
-	['bspcomp/bspcomp', '/dev/stdin', str(fname_bsp)],
+	['bspcomp/bspcomp', '/dev/stdin', str(fname_bsp0)],
 	stdin=subprocess.PIPE
 )
 compiler.stdin.write(in_source)
@@ -101,6 +109,42 @@ compiler.stdin.close()
 if compiler.wait() != 0:
 	print("=== Compilation error ===")
 	sys.exit(1)
+
+if test_dis:
+	if verbose:
+		print("=== Disassembling ===")
+
+	disassembler = subprocess.Popen(
+		['./bspdis', '-n', '-o', str(fname_dis), str(fname_bsp0)],
+		stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	)
+	(_, dis_err) = disassembler.communicate()
+	if verbose and dis_err:
+		print("=== Disassembler error ===")
+		print(dis_err.decode('utf-8'))
+
+	if verbose:
+		print("=== Compiling again ===")
+
+	compiler = subprocess.Popen(
+		['bspcomp/bspcomp', str(fname_dis), str(fname_bsp1)]
+	)
+	if compiler.wait() != 0:
+		print("=== Second-pass compilation error ===")
+		discrepancy = True
+	else:
+		if verbose:
+			print("=== Verifying ===")
+
+		with fname_bsp0.open('rb') as bsp0:
+			with fname_bsp1.open('rb') as bsp1:
+				data0 = bsp0.read()
+				data1 = bsp1.read()
+				if data0 != data1:
+					print("=== Disassembly verification failed ===")
+					print("first : {}".format(data0))
+					print("second: {}".format(data1))
+					discrepancy = True
 
 # prepare input
 if in_data:
@@ -117,7 +161,7 @@ def set_limits():
 	resource.setrlimit(resource.RLIMIT_AS, (as_limit, as_limit))
 
 interpreter = subprocess.Popen(
-	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', str(fname_bsp), str(fname_input), str(fname_target)],
+	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)],
 	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=set_limits
 )
 
@@ -145,8 +189,6 @@ def rm_rf(node):
 		node.unlink()
 
 rm_rf(fname_tmpdir)
-
-discrepancy = False
 
 if expect_fatal:
 	if not actual_fatal:
