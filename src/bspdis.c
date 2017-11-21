@@ -18,7 +18,7 @@ static const char *argv0 = NULL;
 
 static void show_usage(void) {
 	fprintf(stderr,
-		"usage: %s [-n] PATCH_SCRIPT [HINT [...]]\n"
+		"usage: %s [-n] [-o OUTPUT_FILE] PATCH_SCRIPT [HINT [...]]\n"
 		"Disassembler for Binary Scripted Patch files.\n"
 		"\n"
 		"arguments:\n"
@@ -37,6 +37,7 @@ static void show_usage(void) {
 		"\n"
 		"options:\n"
 		"  -n               suppress offsets and bytecode dumps\n"
+		"  -o OUTPUT_FILE   set output file [default=standard output]\n"
 		"\n", argv0
 	);
 	exit(-1);
@@ -257,6 +258,8 @@ static const char *hint_tags[] = {
 	"sz", "sha1", "dh", "dw", "menu", NULL
 };
 
+static const char *output_fname = NULL;
+
 static void parse_cmdline(char *argv[]) {
 	for (size_t i = 1; argv[i]; i++) {
 		const char *arg = argv[i];
@@ -264,7 +267,7 @@ static void parse_cmdline(char *argv[]) {
 			break;
 
 		if (arg[0] == '-' && arg[1]) {
-			// const char *optarg = NULL;
+			const char *optarg = NULL;
 
 #define TAKE_OPTARG() (arg[1] \
 	? (optarg = arg, arg += strlen(arg + 1), ++optarg) \
@@ -274,6 +277,12 @@ static void parse_cmdline(char *argv[]) {
 				switch (*arg) {
 				case 'n':
 					dump_opcodes = false;
+					break;
+
+				case 'o':
+					output_fname = TAKE_OPTARG();
+					if (!strcmp(output_fname, "-"))
+						output_fname = NULL;
 					break;
 
 				default:
@@ -609,7 +618,20 @@ int main(int argc, char **argv) {
 	parse_cmdline(argv);
 
 	dis_analyse();
-	dis_print(stdout);
+
+	FILE *outf = stdout;
+	if (output_fname != NULL) {
+		outf = fopen(output_fname, "wt");
+		if (outf == NULL) {
+			perror(output_fname);
+			return 1;
+		}
+	}
+
+	dis_print(outf);
+
+	if (outf != stdout)
+		fclose(outf);
 
 	cls_fini();
 	patch_unload();
