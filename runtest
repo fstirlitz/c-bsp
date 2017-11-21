@@ -87,7 +87,7 @@ if expect_msg is not None:
 
 in_source = ''.join(in_source).encode('utf-8')
 
-fname_tmpdir = pathlib.Path(tempfile.mkdtemp())
+fname_tmpdir = pathlib.Path(tempfile.mkdtemp(prefix='bsptest-'))
 fname_bsp0   = fname_tmpdir / 'bsp0'
 fname_input  = (fname_tmpdir / 'input') if in_data else '/dev/null'
 fname_target = fname_tmpdir / 'output'
