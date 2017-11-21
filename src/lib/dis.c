@@ -43,7 +43,7 @@ const char *bsp_op_get_mnemonic(const struct bsp_opcode *opc) {
 		case BSP_SHIFT_ROL:
 			return "rotateleft";
 		case BSP_SHIFT_SAR:
-			return "shiftarithright";
+			return "shiftrightarith";
 		}
 	}
 
