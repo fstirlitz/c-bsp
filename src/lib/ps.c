@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 const uint8_t *bsp_ps_getp(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t addr, uint32_t size) {
-	if ((addr + size - 1) < addr) {
+	if (size && (addr + size - 1) < addr) {
 		bsp_die(ec, "pointer overflow: "
 			"0x%x + 0x%x", addr, size);
 	}
