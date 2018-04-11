@@ -20,10 +20,14 @@
 #include "lib/stk.h"
 #include "lib/io.h"
 
+#define INSN_LIMIT_DEFAULT 0x8000000
+#define BRBK_LIMIT_DEFAULT 0x8000000
+#define NEST_LIMIT_DEFAULT 128
+
 static const char *argv0 = NULL;
-static uint32_t insn_limit = 0x800000, insn_count = 0;
-static uint32_t brbk_limit = 0x800000, brbk_count = 0;
-static uint32_t nest_limit = 128;
+static uint32_t insn_limit = INSN_LIMIT_DEFAULT, insn_count = 0;
+static uint32_t brbk_limit = BRBK_LIMIT_DEFAULT, brbk_count = 0;
+static uint32_t nest_limit = NEST_LIMIT_DEFAULT;
 
 static void show_usage(void) {
 	fprintf(stderr,
@@ -47,7 +51,7 @@ static void show_usage(void) {
 		"                   (default: %u; -1 to disable)\n"
 		"  -J BRBK_LIMIT    set limit of backward jumps\n"
 		"                   (default: %u; -1 to disable)\n"
-		"\n", argv0, insn_limit, nest_limit, brbk_limit
+		"\n", argv0, INSN_LIMIT_DEFAULT, NEST_LIMIT_DEFAULT, BRBK_LIMIT_DEFAULT
 	);
 	exit(-1);
 }
