@@ -162,7 +162,7 @@ static void string_add(uint32_t from, uint32_t addr) {
 		}
 	}
 
-	cls_t cls = CLS_STRING | CLS_LABELLED;
+	cls_t cls = CLS_STRING;
 	do {
 		cls_set(addr, cls);
 		cls = CLS_STRING;
@@ -370,6 +370,8 @@ static void parse_cmdline(char *argv[]) {
 			switch (htyp) {
 			case 0:
 				string_add(0, addr);
+				if (label)
+					cls_set(addr, cls_get(addr) | CLS_LABELLED);
 				break;
 			case 1:
 				cls_set_data(addr, CLS_DATA_START | (label ? CLS_LABELLED : 0), 20);
@@ -452,6 +454,7 @@ static void dis_analyse(void) {
 					break;
 				case BSP_OPSEM_PTR_STR:
 					string_add(ip, opc.opval[i]);
+					cls_set(opc.opval[i], cls_get(opc.opval[i]) | CLS_LABELLED);
 					break;
 				case BSP_OPSEM_PTR_CODE:
 					label_add(ip, opc.opval[i]);
@@ -581,7 +584,9 @@ static void dis_print(FILE *outf) {
 
 		case CLS_STRING: {
 			uint32_t offset_start = offset;
-			while (cls_get(++offset) == CLS_STRING);
+			while (cls_get(++offset) == CLS_STRING)
+				if (patch_space.space[offset - 1] == 0)
+					break;
 
 			fhexdump(outf, NULL, 0, 12);
 
