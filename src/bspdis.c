@@ -519,6 +519,7 @@ static void dis_print(FILE *outf) {
 					comma = true;
 
 				switch (opc.optyp[i]) {
+				default:
 				case BSP_OPD_NONE:
 					abort(); /* handled above */
 				case BSP_OPD_RREG:
@@ -532,10 +533,13 @@ static void dis_print(FILE *outf) {
 				case BSP_OPD_IMM16:
 					fprintf(outf, "0x%04x", opc.opval[i]);
 					continue;
-				default: ;
+				case BSP_OPD_IMM32: ;
 				}
 
 				switch (BSP_OPSEM_AT(sems, i)) {
+				case BSP_OPSEM_STACK:
+					fprintf(outf, "%+d", opc.opval[i]);
+					break;
 				case BSP_OPSEM_PTR_CODE:
 				case BSP_OPSEM_PTR_STR:
 				case BSP_OPSEM_PTR_SHA1:
@@ -547,11 +551,8 @@ static void dis_print(FILE *outf) {
 						fprintf(outf, "%c_%08x", cls_label_chars[cls & ~CLS_LABELLED], opc.opval[i]);
 						break;
 					}
+					/* fallthrough */
 				}
-
-				case BSP_OPSEM_STACK:
-					fprintf(outf, "%+d", opc.opval[i]);
-					break;
 				default:
 					fprintf(outf, "0x%08x", opc.opval[i]);
 					break;
