@@ -57,9 +57,10 @@ typedef enum {
 	CLS_DATA         = 0x13, /* data continue */
 	CLS_WORD_START   = 0x04,
 	CLS_HALF_START   = 0x05,
+	CLS_PTR_START    = 0x06,
 } cls_t;
 
-static const char cls_label_chars[0x0f] = "xLSDDD";
+static const char cls_label_chars[0x0f] = "xLSDDDD";
 
 typedef uint64_t clsword_t;
 
@@ -111,6 +112,7 @@ inline static const char *cls_name(cls_t cls) {
 		[CLS_DATA_START] = "data block",
 		[CLS_HALF_START] = "data block",
 		[CLS_WORD_START] = "data block",
+		[CLS_PTR_START ] = "data block",
 		[CLS_DATA      ] = "data block",
 		[CLS_OPERAND   ] = "operand",
 	};
@@ -168,7 +170,7 @@ static void string_add(uint32_t from, uint32_t addr) {
 }
 
 static void menu_add(uint32_t from, uint32_t addr) {
-	cls_t cls = CLS_WORD_START | CLS_LABELLED;
+	cls_t cls = CLS_PTR_START | CLS_LABELLED;
 
 	for (;;) {
 		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
@@ -176,12 +178,14 @@ static void menu_add(uint32_t from, uint32_t addr) {
 			return;
 		}
 
-		cls_set_data(addr, cls, 4);
-		cls = CLS_WORD_START;
-
 		uint32_t saddr = get_le32(patch_space.space + addr);
-		if (saddr == 0xffffffff)
+		if (saddr == 0xffffffff) {
+			cls_set_data(addr, CLS_WORD_START, 4);
 			break;
+		}
+
+		cls_set_data(addr, cls, 4);
+		cls = CLS_PTR_START;
 
 		string_add(addr, saddr);
 		addr += 4;
@@ -240,7 +244,8 @@ static bool jumptab_grab(void) {
 			continue;
 		case CLS_UNKNOWN:
 		case CLS_DATA_START:
-			cls_set_data(addr, CLS_WORD_START, 4);
+		case CLS_PTR_START:
+			cls_set_data(addr, CLS_PTR_START, 4);
 		}
 
 		uint32_t target = get_le32(patch_space.space + addr);
@@ -574,6 +579,23 @@ static void dis_print(FILE *outf) {
 				fprintf(outf, "%c%s", ch, ch == '"' ? "\"" : "");
 			}
 			fprintf(outf, "\"\n");
+			break;
+		}
+
+		case CLS_PTR_START: {
+			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 4 : 0, 12);
+
+			uint32_t value = get_le32(patch_space.space + offset);
+			offset += 4;
+
+			fprintf(outf, "%-18s ", "dw");
+			cls_t cls = cls_get(value);
+			if (cls & CLS_LABELLED) {
+				fprintf(outf, "%c_%08x", cls_label_chars[cls & ~CLS_LABELLED], value);
+			} else {
+				fprintf(outf, "0x%08x", value);
+			}
+			fprintf(outf, "\n");
 			break;
 		}
 
