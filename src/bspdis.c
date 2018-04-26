@@ -275,7 +275,7 @@ static void dis_load(const char *fname) {
 }
 
 static const char *hint_tags[] = {
-	"sz", "sha1", "dh", "dw", "menu", NULL
+	"sz", "sha1", "dh", "dw", "menu", "code", "?", "", NULL
 };
 
 static const char *output_fname = NULL;
@@ -329,7 +329,7 @@ static void parse_cmdline(char *argv[]) {
 			const char *suff;
 			unsigned long addr = strtoul(arg, (char **)&suff, 0);
 
-			if (arg == suff || (*suff && *suff != ':'))
+			if (arg == suff || (*suff && *suff != ':' && *suff != '+'))
 				goto bad_hint;
 
 			if (addr > patch_space.limit) {
@@ -337,13 +337,19 @@ static void parse_cmdline(char *argv[]) {
 				exit(-1);
 			}
 
-			if (!*suff) {
-				if (label)
-					cls_set(addr, CLS_LABELLED | CLS_UNKNOWN);
-				q_push(&labels, addr);
-				continue;
+			if (*suff == ':')
+				++suff;
+
+			while (*suff == '*') {
+				if (addr > patch_space.limit) {
+					fprintf(stderr, "%s: hinted pointer 0x%lx is too high\n", argv0, addr);
+					exit(-1);
+				}
+				cls_set_data(addr, CLS_PTR_START | (label ? CLS_LABELLED : 0), 4);
+				addr = get_le32(patch_space.space + addr);
+				label = true;
+				suff++;
 			}
-			suff++;
 
 			if (*suff == '+') {
 				const char *slen = suff + 1;
@@ -352,6 +358,7 @@ static void parse_cmdline(char *argv[]) {
 					goto bad_hint;
 
 				cls_set_data(addr, CLS_DATA_START | (label ? CLS_LABELLED : 0), len);
+				continue;
 			}
 
 			int htyp = 0;
@@ -375,6 +382,13 @@ static void parse_cmdline(char *argv[]) {
 				break;
 			case 4:
 				menu_add(0, addr);
+				break;
+			case 5:
+			case 7:
+				cls_set(addr, CLS_UNKNOWN | (label ? CLS_LABELLED : 0));
+				q_push(&labels, addr);
+				break;
+			case 6:
 				break;
 			default:
 				goto bad_hint;
