@@ -642,15 +642,24 @@ static void dis_print(FILE *outf) {
 
 		case CLS_DATA_START: {
 			uint32_t offset_start = offset;
-			while (cls_get(++offset) == CLS_DATA);
+			uint32_t offset_cur = offset;
+			while (cls_get(++offset) == CLS_DATA)
+				if (offset == 0xffffffff)
+					break;
 
-			fhexdump(outf, NULL, 0, 12);
-
-			fprintf(outf, "%-18s ", "hexdata");
-			while (offset_start < offset) {
-				fprintf(outf, "%02x", patch_space.space[offset_start++]);
-			}
-			fprintf(outf, "\n");
+			do {
+				fhexdump(outf, NULL, 0, 12);
+				fprintf(outf, "%-18s ", "hexdata");
+				while (offset_cur < offset) {
+					fprintf(outf, "%02x", patch_space.space[offset_cur++]);
+					if ((offset_cur - offset_start) % 32 == 0)
+						break;
+				}
+				fprintf(outf, "\n");
+				if (offset_cur < offset)
+					if (dump_opcodes)
+						fprintf(outf, "%08x  ", offset_cur);
+			} while (offset_cur < offset);
 			break;
 		}
 
