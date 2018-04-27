@@ -11,7 +11,7 @@ clean-coverage:
 	rm -f src/*.gcda src/*/*.gcda
 	rm -f src/*.gcov
 
-check: bsp bspcomp/bspcomp
+check: bsp bspdis bspcomp/bspcomp
 	rm -f *.gcda lib/*.gcda
 	ret=0 ; for test in tests/*.test ; do \
 		echo "--> $$test" ; \
