@@ -6,25 +6,17 @@ import tempfile
 import pathlib
 import subprocess
 import atexit
+import argparse
 
-replace = False
-verbose = False
+args_parser = argparse.ArgumentParser()
+args_parser.add_argument('testfile', metavar='TEST_FILE', type=pathlib.Path)
+args_parser.add_argument('-r', '--replace', action='store_const', const=True)
+args_parser.add_argument('-v', '--verbose', action='store_const', const=True)
+args_parser.add_argument('-k', '--keep', action='store_const', const=True)
 
-argv = sys.argv[1:]
-try:
-	if argv[0] == '-replace':
-		replace = True
-		argv = argv[1:]
-	elif argv[0] == '-verbose':
-		verbose = True
-		argv = argv[1:]
-except IndexError:
-	pass
+args = args_parser.parse_args()
 
-try:
-	testfile = open(argv[0], 'rt')
-except IndexError:
-	testfile = sys.stdin
+testfile = args.testfile.open('rt')
 
 in_source    = []
 in_data      = bytearray()
@@ -97,7 +89,7 @@ fname_bsp1   = fname_tmpdir / 'bsp1'
 discrepancy = False
 
 # compile
-if verbose:
+if args.verbose:
 	print("=== Compiling ===")
 
 compiler = subprocess.Popen(
@@ -111,7 +103,7 @@ if compiler.wait() != 0:
 	sys.exit(1)
 
 if test_dis:
-	if verbose:
+	if args.verbose:
 		print("=== Disassembling ===")
 
 	disassembler = subprocess.Popen(
@@ -119,11 +111,14 @@ if test_dis:
 		stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
 	(_, dis_err) = disassembler.communicate()
-	if verbose and dis_err:
+	if args.verbose and dis_err:
 		print("=== Disassembler error ===")
 		print(dis_err.decode('utf-8'))
 
-	if verbose:
+	if args.verbose:
+		print("=== Disassembly ===")
+		with fname_dis.open('r') as dis:
+			print(dis.read())
 		print("=== Compiling again ===")
 
 	compiler = subprocess.Popen(
@@ -133,7 +128,7 @@ if test_dis:
 		print("=== Second-pass compilation error ===")
 		discrepancy = True
 	else:
-		if verbose:
+		if args.verbose:
 			print("=== Verifying ===")
 
 		with fname_bsp0.open('rb') as bsp0:
@@ -151,7 +146,7 @@ if in_data:
 	with fname_input.open('wb') as f:
 		f.write(in_data)
 
-if verbose:
+if args.verbose:
 	print("=== Running ===")
 
 import resource
@@ -161,7 +156,7 @@ def set_limits():
 	resource.setrlimit(resource.RLIMIT_AS, (as_limit, as_limit))
 
 interpreter = subprocess.Popen(
-	['./bsp', '-N16', '-I8192', '-dttk' if verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)],
+	['./bsp', '-N16', '-I8192', '-dttk' if args.verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)],
 	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=set_limits
 )
 
@@ -188,7 +183,8 @@ def rm_rf(node):
 	else:
 		node.unlink()
 
-rm_rf(fname_tmpdir)
+if not args.keep:
+	rm_rf(fname_tmpdir)
 
 if expect_fatal:
 	if not actual_fatal:
@@ -200,10 +196,7 @@ if expect_msg != actual_msg:
 if actual_data is not None and expect_data != actual_data:
 	discrepancy = True
 
-if discrepancy:
-	verbose = True
-
-if verbose:
+if discrepancy or args.verbose:
 	print("=== Standard error ===")
 	print(actual_err.decode('utf-8'))
 
@@ -233,7 +226,7 @@ if verbose:
 			print("=== Expected fatal error did not happen ===")
 
 if discrepancy:
-	if replace:
+	if args.replace:
 		import os
 		oldname = argv[0]
 		newname = argv[0] + '.new'
