@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <stdalign.h>
 
 #include "stk.h"
@@ -81,7 +82,7 @@ OPFUNC(op_bufstring) {
 OPFUNC(op_bufnumber) {
 	char numbuf[sizeof("4294967295")];
 
-	int n = snprintf(numbuf, sizeof(numbuf), "%u", src[0]);
+	int n = snprintf(numbuf, sizeof(numbuf), "%" PRIu32, src[0]);
 	bsp_buf_push(ec, vm, numbuf, n);
 }
 
