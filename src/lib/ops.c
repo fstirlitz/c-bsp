@@ -11,6 +11,10 @@
 #include "buf.h"
 #include "util.h"
 
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
+
 #define OPFUNC(func) \
 	static void func ( \
 		struct bsp_ec *ec __attribute__((unused)), \
