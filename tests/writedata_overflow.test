@@ -1,0 +1,5 @@
+	writedata data, 8
+	exit 0
+data:
+	hexdata 12341234
+;;;; fatal
