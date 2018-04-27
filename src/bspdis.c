@@ -58,9 +58,10 @@ typedef enum {
 	CLS_WORD_START   = 0x04,
 	CLS_HALF_START   = 0x05,
 	CLS_PTR_START    = 0x06,
+	CLS_IPS_START    = 0x07,
 } cls_t;
 
-static const char cls_label_chars[0x0f] = "xLSDDDD";
+static const char cls_label_chars[0x0f] = "xLSDWHPI";
 
 typedef uint64_t clsword_t;
 
@@ -220,6 +221,48 @@ static void label_add(uint32_t from, uint32_t addr) {
 		return;
 
 	q_push(&labels, addr);
+}
+
+static void ips_add(uint32_t from, uint32_t addr) {
+	if (addr > patch_space.limit) {
+		dis_diag(from, "bad IPS reference (0x%x)", addr);
+		return;
+	}
+
+	uint32_t start = addr;
+
+	if (memcmp(&patch_space.space[addr], "PATCH", 5)) {
+		dis_diag(from, "bad IPS reference (0x%x)", addr);
+		return;
+	}
+	addr += 5;
+
+	for (;;) {
+		if (addr > patch_space.limit) {
+			dis_diag(from, "bad IPS reference (0x%x)", addr);
+			return;
+		}
+
+		addr += 3;
+		if (!memcmp(&patch_space.space[addr - 3], "EOF", 3)) {
+			break;
+		}
+
+		if (addr > patch_space.limit) {
+			dis_diag(from, "bad IPS reference (0x%x)", addr);
+			return;
+		}
+
+		uint16_t len = get_be16(&patch_space.space[addr]);
+		addr += 2;
+		if (len == 0) {
+			addr += 3;
+		} else {
+			addr += len;
+		}
+	}
+
+	cls_set_data(start, CLS_IPS_START | CLS_LABELLED, addr - start);
 }
 
 static struct queue_u32 jumptabs = Q_EMPTY;
@@ -482,6 +525,9 @@ static void dis_analyse(void) {
 				case BSP_OPSEM_PTR_DATA32:
 					cls_set_data(opc.opval[i], CLS_WORD_START | CLS_LABELLED, 4);
 					break;
+				case BSP_OPSEM_PTR_IPS:
+					ips_add(ip, opc.opval[i]);
+					break;
 				}
 			}
 
@@ -664,6 +710,7 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
+		case CLS_IPS_START:
 		case CLS_DATA_START: {
 			uint32_t offset_start = offset;
 			uint32_t offset_cur = offset;
