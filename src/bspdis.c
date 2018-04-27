@@ -61,7 +61,16 @@ typedef enum {
 	CLS_IPS_START    = 0x07,
 } cls_t;
 
-static const char cls_label_chars[0x0f] = "xLSDWHPI";
+static const char *cls_label_prefix[0x0f] = {
+	"unk",
+	"label",
+	"str",
+	"data",
+	"word",
+	"half",
+	"ptr",
+	"ips",
+};
 
 typedef uint64_t clsword_t;
 
@@ -576,8 +585,8 @@ static void dis_print(FILE *outf) {
 		cls_t cls = cls_get(offset);
 
 		if (cls & CLS_LABELLED) {
-			fprintf(outf, "%c_%08x:\n",
-				cls_label_chars[cls & ~CLS_LABELLED],
+			fprintf(outf, "%s_%08x:\n",
+				cls_label_prefix[cls & ~CLS_LABELLED],
 				offset
 			);
 		}
@@ -646,7 +655,7 @@ static void dis_print(FILE *outf) {
 				case BSP_OPSEM_PTR_MENU: {
 					cls_t cls = cls_get(opc.opval[i]);
 					if (cls & CLS_LABELLED) {
-						fprintf(outf, "%c_%08x", cls_label_chars[cls & ~CLS_LABELLED], opc.opval[i]);
+						fprintf(outf, "%s_%08x", cls_label_prefix[cls & ~CLS_LABELLED], opc.opval[i]);
 						break;
 					}
 					/* fallthrough */
@@ -692,7 +701,7 @@ static void dis_print(FILE *outf) {
 			fprintf(outf, "%-18s ", "dw");
 			cls_t cls = cls_get(value);
 			if (cls & CLS_LABELLED) {
-				fprintf(outf, "%c_%08x", cls_label_chars[cls & ~CLS_LABELLED], value);
+				fprintf(outf, "%s_%08x", cls_label_prefix[cls & ~CLS_LABELLED], value);
 			} else {
 				fprintf(outf, "0x%08x", value);
 			}
