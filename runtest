@@ -225,6 +225,8 @@ if discrepancy or args.verbose:
 		if not actual_fatal:
 			print("=== Expected fatal error did not happen ===")
 
+_OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
+
 if discrepancy:
 	if args.replace:
 		import os
@@ -236,7 +238,7 @@ if discrepancy:
 		for line in testfile:
 			if line.startswith(';;;;'):
 				sect, _, param = line[len(';;;;'):].strip().partition(' ')
-				skip = (sect == 'output') or (sect == 'target') or (sect == 'exit') or (sect == 'fatal')
+				skip = sect in _OUTPUT_SECTIONS
 			if not skip:
 				newfile.write(line)
 		if actual_msg:
