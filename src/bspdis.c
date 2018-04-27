@@ -473,6 +473,15 @@ static void dis_analyse(void) {
 				case BSP_OPSEM_LENGTH:
 					cls_set_data(data_ptr, CLS_DATA_START | CLS_LABELLED, opc.opval[i]);
 					break;
+				case BSP_OPSEM_PTR_DATA8:
+					cls_set_data(opc.opval[i], CLS_DATA_START | CLS_LABELLED, 1);
+					break;
+				case BSP_OPSEM_PTR_DATA16:
+					cls_set_data(opc.opval[i], CLS_HALF_START | CLS_LABELLED, 2);
+					break;
+				case BSP_OPSEM_PTR_DATA32:
+					cls_set_data(opc.opval[i], CLS_WORD_START | CLS_LABELLED, 4);
+					break;
 				}
 			}
 
@@ -573,6 +582,9 @@ static void dis_print(FILE *outf) {
 				case BSP_OPSEM_PTR_SHA1:
 				case BSP_OPSEM_PTR_IPS:
 				case BSP_OPSEM_PTR_DATA:
+				case BSP_OPSEM_PTR_DATA8:
+				case BSP_OPSEM_PTR_DATA16:
+				case BSP_OPSEM_PTR_DATA32:
 				case BSP_OPSEM_PTR_BSP:
 				case BSP_OPSEM_PTR_MENU: {
 					cls_t cls = cls_get(opc.opval[i]);
