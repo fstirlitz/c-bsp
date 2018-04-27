@@ -442,6 +442,7 @@ static void dis_analyse(void) {
 				cls_set(ip + i, CLS_OPERAND);
 			}
 
+			uint32_t data_ptr = 0;
 			for (size_t i = 0; i < BSP_OPNUM; ++i) {
 				if (opc.optyp[i] != BSP_OPD_IMM32)
 					continue;
@@ -461,6 +462,16 @@ static void dis_analyse(void) {
 					break;
 				case BSP_OPSEM_PTR_MENU:
 					menu_add(ip, opc.opval[i]);
+					break;
+				case BSP_OPSEM_PTR_BSP:
+				case BSP_OPSEM_PTR_DATA:
+					cls_set(opc.opval[i], cls_get(opc.opval[i]) | CLS_LABELLED);
+					// XXX: we exploit the fact that in all currently defined opcodes,
+					// data length follows data pointer; this may fail in the future!
+					data_ptr = opc.opval[i];
+					break;
+				case BSP_OPSEM_LENGTH:
+					cls_set_data(data_ptr, CLS_DATA_START | CLS_LABELLED, opc.opval[i]);
 					break;
 				}
 			}
@@ -561,6 +572,7 @@ static void dis_print(FILE *outf) {
 				case BSP_OPSEM_PTR_STR:
 				case BSP_OPSEM_PTR_SHA1:
 				case BSP_OPSEM_PTR_IPS:
+				case BSP_OPSEM_PTR_DATA:
 				case BSP_OPSEM_PTR_BSP:
 				case BSP_OPSEM_PTR_MENU: {
 					cls_t cls = cls_get(opc.opval[i]);
