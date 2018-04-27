@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "asprintf.c"
+
 void bsp_ec_clear(struct bsp_ec *ec) {
 	if (ec->fatal_msg == NULL)
 		return;

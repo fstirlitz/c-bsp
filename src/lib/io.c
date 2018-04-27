@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "io.h"
 
 #include "sha1.h"

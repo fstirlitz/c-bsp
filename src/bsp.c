@@ -557,8 +557,10 @@ static enum { SCRATCH_MODE_COPY, SCRATCH_MODE_TMPFILE } scratch_mode = SCRATCH_M
 static int scratch_fd = -1;
 static char *scratch_fname = NULL;
 
+#include "lib/asprintf.c"
+
 static void scratch_open(int mode) {
-#if defined(__linux__)
+#if defined(__linux__) && defined(O_TMPFILE)
 	if (!scratch_keep) {
 		scratch_fname = strdup(target_fname);
 		scratch_fd = open(dirname(scratch_fname), O_TMPFILE | O_RDWR, mode);
