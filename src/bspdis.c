@@ -281,9 +281,7 @@ static void dis_jumptab_new(uint32_t addr) {
 	q_push(&jumptabs, addr);
 }
 
-static bool dis_jumptab_grab(void) {
-	bool grabbed = false;
-
+static void dis_jumptab_grab(void) {
 	for (size_t i = jumptabs.off; i < jumptabs.fin; ++i) {
 		uint32_t addr = jumptabs.data[i];
 
@@ -313,11 +311,8 @@ static bool dis_jumptab_grab(void) {
 			dis_queue_block(addr, target);
 			dis_put_label(target);
 			jumptabs.data[i] = addr + 4;
-			grabbed = true;
 		}
 	}
-
-	return grabbed;
 }
 
 static bool dump_opcodes = true;
