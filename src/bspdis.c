@@ -55,10 +55,11 @@ typedef enum {
 	CLS_STRING       = 0x02, /* string */
 	CLS_DATA_START   = 0x03, /* data start */
 	CLS_DATA         = 0x13, /* data continue */
-	CLS_WORD_START   = 0x04,
-	CLS_HALF_START   = 0x05,
-	CLS_PTR_START    = 0x06,
-	CLS_IPS_START    = 0x07,
+	CLS_BYTE_START   = 0x04,
+	CLS_WORD_START   = 0x05,
+	CLS_HALF_START   = 0x06,
+	CLS_PTR_START    = 0x07,
+	CLS_IPS_START    = 0x08,
 } cls_t;
 
 static const char *cls_label_prefix[0x0f] = {
@@ -66,6 +67,7 @@ static const char *cls_label_prefix[0x0f] = {
 	"label",
 	"str",
 	"data",
+	"byte",
 	"word",
 	"half",
 	"ptr",
@@ -533,7 +535,7 @@ static void dis_analyse(void) {
 					cls_set_data(data_ptr, CLS_DATA_START, opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA8:
-					cls_set_data(opc.opval[i], CLS_DATA_START, 1);
+					cls_set_data(opc.opval[i], CLS_BYTE_START, 1);
 					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA16:
@@ -754,6 +756,7 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
+		case CLS_BYTE_START:
 		default: {
 			fhexdump(outf, NULL, 0, 12);
 
