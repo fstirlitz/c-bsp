@@ -105,6 +105,10 @@ inline static void cls_set_data(uint32_t offset, cls_t cls, size_t len) {
 		cls_set(offset++, CLS_DATA);
 }
 
+inline static void dis_put_label(uint32_t addr) {
+	cls_set(addr, cls_get(addr) | CLS_LABELLED);
+}
+
 inline static const char *cls_name(cls_t cls) {
 	static const char *clsnames[] = {
 		[CLS_UNKNOWN   ] = "unknown",
@@ -147,7 +151,7 @@ static void dis_diag(uint32_t off, const char *fmt, ...) {
 	had_diag = true;
 }
 
-static void string_add(uint32_t from, uint32_t addr) {
+static void dis_mark_string(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
 		dis_diag(from, "bad string reference (0x%x)", addr);
 		return;
@@ -170,8 +174,8 @@ static void string_add(uint32_t from, uint32_t addr) {
 	} while (addr++ < end);
 }
 
-static void menu_add(uint32_t from, uint32_t addr) {
-	cls_t cls = CLS_PTR_START | CLS_LABELLED;
+static void dis_mark_menu(uint32_t from, uint32_t addr) {
+	cls_t cls = CLS_PTR_START;
 
 	for (;;) {
 		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
@@ -188,14 +192,14 @@ static void menu_add(uint32_t from, uint32_t addr) {
 		cls_set_data(addr, cls, 4);
 		cls = CLS_PTR_START;
 
-		string_add(addr, saddr);
+		dis_mark_string(addr, saddr);
 		addr += 4;
 	}
 }
 
 static struct queue_u32 labels = Q_EMPTY;
 
-static void label_add(uint32_t from, uint32_t addr) {
+static void dis_queue_block(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
 		dis_diag(from, "bad control flow beyond the end of the file (0x%x)", addr);
 		return;
@@ -208,14 +212,9 @@ static void label_add(uint32_t from, uint32_t addr) {
 		dis_diag(from, "bad control flow into a %s at 0x%x", cls_name(cls), addr);
 		return;
 	case CLS_OPCODE:
-		cls_set(addr, CLS_OPCODE | CLS_LABELLED);
-		return;
 	case CLS_UNKNOWN:
 		/* OK */;
 	}
-
-	/* the CFG analyser will reset it */
-	cls_set(addr, CLS_UNKNOWN | CLS_LABELLED);
 
 	if (cls & CLS_LABELLED)
 		return;
@@ -223,7 +222,7 @@ static void label_add(uint32_t from, uint32_t addr) {
 	q_push(&labels, addr);
 }
 
-static void ips_add(uint32_t from, uint32_t addr) {
+static void dis_mark_ips(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
 		dis_diag(from, "bad IPS reference (0x%x)", addr);
 		return;
@@ -262,16 +261,16 @@ static void ips_add(uint32_t from, uint32_t addr) {
 		}
 	}
 
-	cls_set_data(start, CLS_IPS_START | CLS_LABELLED, addr - start);
+	cls_set_data(start, CLS_IPS_START, addr - start);
 }
 
 static struct queue_u32 jumptabs = Q_EMPTY;
 
-static void jumptab_add(uint32_t addr) {
+static void dis_jumptab_new(uint32_t addr) {
 	q_push(&jumptabs, addr);
 }
 
-static bool jumptab_grab(void) {
+static bool dis_jumptab_grab(void) {
 	bool grabbed = false;
 
 	for (size_t i = jumptabs.off; i < jumptabs.fin; ++i) {
@@ -300,7 +299,8 @@ static bool jumptab_grab(void) {
 			continue;
 		case CLS_UNKNOWN:
 		case CLS_OPCODE:
-			label_add(addr, target);
+			dis_queue_block(addr, target);
+			dis_put_label(target);
 			jumptabs.data[i] = addr + 4;
 			grabbed = true;
 		}
@@ -388,7 +388,9 @@ static void parse_cmdline(char *argv[]) {
 					fprintf(stderr, "%s: hinted pointer 0x%lx is too high\n", argv0, addr);
 					exit(-1);
 				}
-				cls_set_data(addr, CLS_PTR_START | (label ? CLS_LABELLED : 0), 4);
+				cls_set_data(addr, CLS_PTR_START, 4);
+				if (label)
+					dis_put_label(addr);
 				addr = get_le32(patch_space.space + addr);
 				label = true;
 				suff++;
@@ -400,7 +402,9 @@ static void parse_cmdline(char *argv[]) {
 				if (suff == slen || *suff)
 					goto bad_hint;
 
-				cls_set_data(addr, CLS_DATA_START | (label ? CLS_LABELLED : 0), len);
+				cls_set_data(addr, CLS_DATA_START, len);
+				if (label)
+					dis_put_label(addr);
 				continue;
 			}
 
@@ -412,25 +416,22 @@ static void parse_cmdline(char *argv[]) {
 
 			switch (htyp) {
 			case 0:
-				string_add(0, addr);
-				if (label)
-					cls_set(addr, cls_get(addr) | CLS_LABELLED);
+				dis_mark_string(0, addr);
 				break;
 			case 1:
-				cls_set_data(addr, CLS_DATA_START | (label ? CLS_LABELLED : 0), 20);
+				cls_set_data(addr, CLS_DATA_START, 20);
 				break;
 			case 2:
-				cls_set_data(addr, CLS_HALF_START | (label ? CLS_LABELLED : 0), 2);
+				cls_set_data(addr, CLS_HALF_START, 2);
 				break;
 			case 3:
-				cls_set_data(addr, CLS_WORD_START | (label ? CLS_LABELLED : 0), 4);
+				cls_set_data(addr, CLS_WORD_START, 4);
 				break;
 			case 4:
-				menu_add(0, addr);
+				dis_mark_menu(0, addr);
 				break;
 			case 5:
 			case 7:
-				cls_set(addr, CLS_UNKNOWN | (label ? CLS_LABELLED : 0));
 				q_push(&labels, addr);
 				break;
 			case 6:
@@ -438,6 +439,9 @@ static void parse_cmdline(char *argv[]) {
 			default:
 				goto bad_hint;
 			}
+
+			if (label)
+				dis_put_label(addr);
 
 			continue;
 
@@ -485,7 +489,7 @@ static void dis_analyse(void) {
 				cls_set(ip + i, CLS_OPERAND);
 			}
 
-			uint32_t data_ptr = 0;
+			uint32_t data_ptr = -1;
 			for (size_t i = 0; i < BSP_OPNUM; ++i) {
 				if (opc.optyp[i] != BSP_OPD_IMM32)
 					continue;
@@ -494,39 +498,46 @@ static void dis_analyse(void) {
 
 				switch (BSP_OPSEM_AT(sems, i)) {
 				case BSP_OPSEM_PTR_SHA1:
-					cls_set_data(opc.opval[i], CLS_DATA_START | CLS_LABELLED, 20);
+					cls_set_data(opc.opval[i], CLS_DATA_START, 20);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_STR:
-					string_add(ip, opc.opval[i]);
-					cls_set(opc.opval[i], cls_get(opc.opval[i]) | CLS_LABELLED);
+					dis_mark_string(ip, opc.opval[i]);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_CODE:
-					label_add(ip, opc.opval[i]);
+					dis_queue_block(ip, opc.opval[i]);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_MENU:
-					menu_add(ip, opc.opval[i]);
+					dis_mark_menu(ip, opc.opval[i]);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_BSP:
 				case BSP_OPSEM_PTR_DATA:
-					cls_set(opc.opval[i], cls_get(opc.opval[i]) | CLS_LABELLED);
-					// XXX: we exploit the fact that in all currently defined opcodes,
-					// data length follows data pointer; this may fail in the future!
 					data_ptr = opc.opval[i];
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_LENGTH:
-					cls_set_data(data_ptr, CLS_DATA_START | CLS_LABELLED, opc.opval[i]);
+					// XXX: we exploit the fact that in all currently defined opcodes,
+					// data length follows data pointer; this may fail in the future!
+					cls_set_data(data_ptr, CLS_DATA_START, opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA8:
-					cls_set_data(opc.opval[i], CLS_DATA_START | CLS_LABELLED, 1);
+					cls_set_data(opc.opval[i], CLS_DATA_START, 1);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA16:
-					cls_set_data(opc.opval[i], CLS_HALF_START | CLS_LABELLED, 2);
+					cls_set_data(opc.opval[i], CLS_HALF_START, 2);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA32:
-					cls_set_data(opc.opval[i], CLS_WORD_START | CLS_LABELLED, 4);
+					cls_set_data(opc.opval[i], CLS_WORD_START, 4);
+					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_IPS:
-					ips_add(ip, opc.opval[i]);
+					dis_mark_ips(ip, opc.opval[i]);
+					dis_put_label(opc.opval[i]);
 					break;
 				}
 			}
@@ -536,7 +547,7 @@ static void dis_analyse(void) {
 			bsp_opflags_t fl = bsp_op_get_flags(&opc);
 
 			if (fl & BSP_OPFLAG_JUMP_TABLE) {
-				jumptab_add(ip);
+				dis_jumptab_new(ip);
 				break;
 			}
 
@@ -550,7 +561,7 @@ static void dis_analyse(void) {
 	next_label: ;
 
 		if (q_empty(&labels)) {
-			jumptab_grab();
+			dis_jumptab_grab();
 		}
 	}
 
