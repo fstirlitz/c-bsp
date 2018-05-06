@@ -85,9 +85,16 @@ OPFUNC(op_bufstring) {
 /* bufnumber any */
 OPFUNC(op_bufnumber) {
 	char numbuf[sizeof("4294967295")];
+	char *bufp = numbuf + sizeof(numbuf);
 
-	int n = snprintf(numbuf, sizeof(numbuf), "%" PRIu32, src[0]);
-	bsp_buf_push(ec, vm, numbuf, n);
+	uint32_t value = src[0];
+
+	do {
+		*--bufp = '0' + (value % 10);
+		value /= 10;
+	} while (value);
+
+	bsp_buf_push(ec, vm, bufp, numbuf + sizeof(numbuf) - bufp);
 }
 
 /* bufchar any */
