@@ -204,6 +204,7 @@ static void dis_mark_menu(uint32_t from, uint32_t addr) {
 		cls = CLS_PTR_START;
 
 		dis_mark_string(addr, saddr);
+		dis_put_label(saddr);
 		addr += 4;
 	}
 }
