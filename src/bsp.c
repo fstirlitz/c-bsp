@@ -432,6 +432,7 @@ static void fatal_cb(struct bsp_vm *vm, bsp_ret_t ret, struct bsp_ec *ec) {
 
 	case BSP_RET_FATAL:
 		fprintf(stderr, "%s: fatal error: %s\n", argv0, ec->fatal_msg);
+		bsp_ec_clear(ec);
 		break;
 
 	}
