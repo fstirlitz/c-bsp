@@ -27,7 +27,7 @@ typedef enum {
 	BSP_OPSEM_PTR_MENU          = 0x19,   // address of menu data
 } bsp_opsem_t;
 
-#define BSP_OPSEM_AT(sems, i) (((sems) >> (8 * i)) & 0xff)
+#define BSP_OPSEM_AT(sems, i) ((bsp_opsem_t)(((sems) >> (8 * i)) & 0xff))
 
 typedef uint_fast32_t bsp_opsems_t;
 

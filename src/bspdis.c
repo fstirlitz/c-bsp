@@ -546,6 +546,7 @@ static void dis_analyse(void) {
 					dis_mark_ips(ip, opc.opval[i]);
 					dis_put_label(opc.opval[i]);
 					break;
+				default: ;
 				}
 			}
 

@@ -278,6 +278,7 @@ static void dump_operands(struct bsp_vm *vm, struct bsp_opcode *opc, bool after)
 			break;
 		}
 
+		default: ;
 		}
 	}
 }
