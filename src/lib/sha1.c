@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 #include <stdio.h>
 
 #include "util.h"
@@ -70,13 +71,15 @@ static void bsp_sha1_hash_chunk(struct bsp_sha1_state *state, const uint8_t *chu
 }
 
 void bsp_sha1_update(struct bsp_sha1_state *state, const char *buffer, size_t size) {
+	assert(state->chunk_used < sizeof(state->chunk));
+
 	state->length += size;
 
 	if (state->chunk_used) {
-		size_t padsize = size;
+		size_t padsize = sizeof(state->chunk) - state->chunk_used;
 
-		if (padsize + state->chunk_used >= sizeof(state->chunk))
-			padsize = sizeof(state->chunk) - state->chunk_used;
+		if (padsize > size)
+			padsize = size;
 		memcpy(state->chunk + state->chunk_used, buffer, padsize);
 		state->chunk_used += padsize;
 		if (state->chunk_used < sizeof(state->chunk))
@@ -103,6 +106,8 @@ void bsp_sha1_update(struct bsp_sha1_state *state, const char *buffer, size_t si
 }
 
 void bsp_sha1_finish(struct bsp_sha1_state *state, uint8_t *result) {
+	assert(state->chunk_used < sizeof(state->chunk));
+
 	memset(
 		state->chunk + state->chunk_used, 0,
 		sizeof(state->chunk) - state->chunk_used
@@ -110,7 +115,7 @@ void bsp_sha1_finish(struct bsp_sha1_state *state, uint8_t *result) {
 	state->chunk[state->chunk_used] = 0x80;
 	if (state->chunk_used > (sizeof(state->chunk) - 8)) {
 		bsp_sha1_hash_chunk(state, state->chunk);
-		memset(state->chunk, 0, sizeof(state->chunk));
+		memset(state->chunk, 0, state->chunk_used + 1);
 	}
 
 	uint64_t len = state->length << 3;
