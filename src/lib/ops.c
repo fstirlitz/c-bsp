@@ -20,7 +20,7 @@
 		struct bsp_ec *ec __attribute__((unused)), \
 		struct bsp_vm *vm __attribute__((unused)), \
 		const uint32_t src[] __attribute__((unused)), \
-		uint32_t *(dst[]) __attribute__((unused)) \
+		uint32_t *dst[] __attribute__((unused)) \
 	)
 
 static void validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
@@ -222,12 +222,12 @@ OP_CONDJUMP(op_ifge, >=)
 	OPFUNC(func) { \
 		if (src[1] == 0) \
 			bsp_die(ec, "attempt to divide by zero"); \
-		*(dst[0]) = src[0] op src[1]; \
+		*dst[0] = src[0] op src[1]; \
 	}
 
 #define OP_ARITH(func, op) \
 	OPFUNC(func) { \
-		*(dst[0]) = src[0] op src[1]; \
+		*dst[0] = src[0] op src[1]; \
 	}
 
 OP_ARITH(op_add          , +)
@@ -242,34 +242,34 @@ OP_ARITH(op_xor          , ^)
 OPFUNC(op_addcarry) {
 	uint32_t result = src[0] + src[1];
 	if (result < src[0])
-		*(dst[1]) += 1;
+		*dst[1] += 1;
 	if (dst[0] == dst[1])
 		return;
-	*(dst[0]) = result;
+	*dst[0] = result;
 }
 
 OPFUNC(op_subborrow) {
 	if (src[0] < src[1])
-		*(dst[1]) -= 1;
+		*dst[1] -= 1;
 	if (dst[0] == dst[1])
 		return;
-	*(dst[0]) = src[0] - src[1];
+	*dst[0] = src[0] - src[1];
 }
 
 OPFUNC(op_longmul) {
 	uint64_t result;
 	result = (uint64_t)src[0] * (uint64_t)src[1];
 	// do not change the order here!
-	*(dst[0]) =  result       ;
-	*(dst[1]) = (result >> 32);
+	*dst[0] =  result       ;
+	*dst[1] = (result >> 32);
 }
 
 OPFUNC(op_longmulacum) {
-	uint64_t result = *(dst[0]) | (dst[1] != dst[0] ? (uint64_t)(*(dst[1])) << 32 : 0);
+	uint64_t result = *dst[0] | (dst[1] != dst[0] ? (uint64_t)(*dst[1]) << 32 : 0);
 	result += (uint64_t)src[0] * (uint64_t)src[1];
 	// do not change the order here!
-	*(dst[1]) = (result >> 32);
-	*(dst[0]) =  result       ;
+	*dst[1] = (result >> 32);
+	*dst[0] =  result       ;
 }
 
 OPFUNC(op_bit_shift) {
@@ -279,16 +279,16 @@ OPFUNC(op_bit_shift) {
 
 	switch (src[2]) {
 	case BSP_SHIFT_SHL:
-		*(dst[0]) = src[0] << count;
+		*dst[0] = src[0] << count;
 		return;
 	case BSP_SHIFT_SHR:
-		*(dst[0]) = src[0] >> count;
+		*dst[0] = src[0] >> count;
 		return;
 	case BSP_SHIFT_SAR:
-		*(dst[0]) = ((int32_t)src[0]) >> count;
+		*dst[0] = ((int32_t)src[0]) >> count;
 		return;
 	case BSP_SHIFT_ROL:
-		*(dst[0]) = rol32(src[0], count);
+		*dst[0] = rol32(src[0], count);
 		return;
 	default:
 		abort();
@@ -302,7 +302,7 @@ OPFUNC(op_push) {
 
 /* pop #reg */
 OPFUNC(op_pop) {
-	*(dst[0]) = bsp_stk_pop(ec, vm);
+	*dst[0] = bsp_stk_pop(ec, vm);
 }
 
 OPFUNC(op_setstacksize) {
@@ -313,7 +313,7 @@ OPFUNC(op_getstacksize) {
 	size_t size = bsp_stk_getsize(vm);
 	if (size > 0xffffffff)
 		size = 0xffffffff;
-	*(dst[0]) = size;
+	*dst[0] = size;
 }
 
 noreturn static void bsp_die_stk(struct bsp_ec *ec, struct bsp_vm *vm, uint32_t pos, const char *errmsg) {
@@ -328,7 +328,7 @@ OPFUNC(op_stackread) {
 	uint32_t *slot = bsp_stk_getslot(vm, src[0]);
 	if (slot == NULL)
 		bsp_die_stk(ec, vm, src[0], "attempt to read beyond the bounds of the stack");
-	*(dst[0]) = *slot;
+	*dst[0] = *slot;
 }
 
 OPFUNC(op_stackwrite) {
@@ -353,21 +353,21 @@ OPFUNC(op_stackshift) {
 
 /* set #reg, any */
 OPFUNC(op_set) {
-	*(dst[0]) = src[0];
+	*dst[0] = src[0];
 }
 
 /* (inc|dec)rement #reg */
 OPFUNC(op_increment) {
-	*(dst[0]) += 1;
+	*dst[0] += 1;
 }
 
 OPFUNC(op_decrement) {
-	*(dst[0]) -= 1;
+	*dst[0] -= 1;
 }
 
 OPFUNC(op_getvariable) {
 	/* sic, no error */
-	*(dst[0]) = vm->regs[src[0] & 0xff];
+	*dst[0] = vm->regs[src[0] & 0xff];
 }
 
 /* get<size> #dst, addr */
@@ -375,15 +375,15 @@ OPFUNC(op_getvariable) {
 
 #define OP_MOVM(func, b, n) \
 	OPFUNC(func) { \
-		*(dst[0])  = get_le ## b(bsp_ps_getp(ec, vm->ps, src[0], n)); \
+		*dst[0]  = get_le ## b(bsp_ps_getp(ec, vm->ps, src[0], n)); \
 	}
 
 #define OP_MOVS(func, b, n) \
 	OPFUNC(func) { \
-		*(dst[0]) = get_le ## b(bsp_ps_getp(ec, vm->ps, *(dst[1]), b / 8)); \
+		*dst[0] = get_le ## b(bsp_ps_getp(ec, vm->ps, *dst[1], b / 8)); \
 		if (dst[0] == dst[1]) \
 			return; \
-		*(dst[1]) += n; \
+		*dst[1] += n; \
 	}
 
 OP_MOVM(op_getbyte       , 8,  1)
@@ -403,7 +403,7 @@ OPFUNC(op_length) {
 	off_t len = bsp_io_length(ec, vm->io);
 	if (len > 0xffffffff)
 		bsp_die(ec, "the file is larger than 4 GiB");
-	*(dst[0]) = len;
+	*dst[0] = len;
 }
 
 /* checksha1 #reg, addr */
@@ -411,11 +411,11 @@ OPFUNC(op_checksha1) {
 	const uint8_t *target_sha1 = bsp_ps_getp(ec, vm->ps, src[0], 20);
 	const uint8_t *actual_sha1 = bsp_io_sha1(ec, vm->io);
 
-	*(dst[0]) = 0;
+	*dst[0] = 0;
 	for (size_t i = 0; i < 20; ++i) {
 		if (target_sha1[i] == actual_sha1[i])
 			continue;
-		*(dst[0]) |= 1 << i;
+		*dst[0] |= 1 << i;
 	}
 }
 
@@ -424,7 +424,7 @@ OPFUNC(op_checksha1) {
 		uint8_t datum[b / 8]; \
 		if (bsp_io_read(ec, vm->io, datum, sizeof(datum)) < sizeof(datum)) \
 			bsp_die(ec, "attempt to read beyond end of file"); \
-		*(dst[0]) = get_le ## b (datum); \
+		*dst[0] = get_le ## b (datum); \
 	}
 
 #define OP_PEEKFUNC(func, b) \
@@ -432,7 +432,7 @@ OPFUNC(op_checksha1) {
 		uint8_t datum[b / 8]; \
 		if (bsp_io_pread(ec, vm->io, datum, sizeof(datum), bsp_io_tell(ec, vm->io)) < sizeof(datum)) \
 			bsp_die(ec, "attempt to read beyond end of file"); \
-		*(dst[0]) = get_le ## b (datum); \
+		*dst[0] = get_le ## b (datum); \
 	}
 
 #define OP_WRITEFUNC(func, b) \
@@ -492,7 +492,7 @@ OPFUNC(op_ipspatch) {
 		}
 	}
 
-	*(dst[0]) = addr;
+	*dst[0] = addr;
 }
 
 /* bsppatch #reg, addr, len */
@@ -521,7 +521,7 @@ OPFUNC(op_bsppatch) {
 		bsp_rethrow(ec, &child_ec, ret);
 	}
 
-	*(dst[0]) = bsp_run(&child_ec, &child_vm);
+	*dst[0] = bsp_run(&child_ec, &child_vm);
 	bsp_fini(&child_vm);
 }
 
@@ -606,7 +606,7 @@ OPFUNC(op_pos) {
 	off_t pos = bsp_io_tell(ec, vm->io);
 	if (pos > 0xffffffff)
 		bsp_die(ec, "offset larger than 4 GiB");
-	*(dst[0]) = pos;
+	*dst[0] = pos;
 }
 
 /* truncate any */
@@ -640,7 +640,7 @@ OPFUNC(op_menu) {
 	if (count == 0) {
 		// this is what the spec requires to happen
 		// I am quite surprised it doesn't prescribe generating a fatal error instead
-		*(dst[0]) = 0xffffffff;
+		*dst[0] = 0xffffffff;
 		return;
 	}
 
@@ -680,7 +680,7 @@ OPFUNC(op_menu) {
 	if (block_size >= MENU_MALLOC_THRESHOLD)
 		free(block);
 
-	*(dst[0]) = choice;
+	*dst[0] = choice;
 }
 
 const bsp_ophandler_t bsp_ophandlers[] = {
