@@ -8,13 +8,15 @@ import subprocess
 import atexit
 import argparse
 
-args_parser = argparse.ArgumentParser()
-args_parser.add_argument('testfile', metavar='TEST_FILE', type=pathlib.Path)
-args_parser.add_argument('-r', '--replace', action='store_const', const=True)
-args_parser.add_argument('-v', '--verbose', action='store_const', const=True)
-args_parser.add_argument('-k', '--keep', action='store_const', const=True)
+def parse_args():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('testfile', metavar='TEST_FILE', type=pathlib.Path)
+	parser.add_argument('-r', '--replace', action='store_const', const=True)
+	parser.add_argument('-v', '--verbose', action='store_const', const=True)
+	parser.add_argument('-k', '--keep', action='store_const', const=True)
+	return parser.parse_args()
 
-args = args_parser.parse_args()
+args = parse_args()
 
 testfile = args.testfile.open('rt')
 
