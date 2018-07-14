@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 struct bsp_sha1_state {
-	uint8_t chunk[64];
+	char chunk[64];
 	uint64_t length;
 	uint32_t h[5];
 	uint_fast8_t chunk_used;

@@ -18,7 +18,7 @@ void bsp_sha1_init(struct bsp_sha1_state *state) {
 	state->h[4] = 0xc3d2e1f0;
 }
 
-static void bsp_sha1_hash_chunk(struct bsp_sha1_state *state, const uint8_t *chunk) {
+static void bsp_sha1_hash_chunk(struct bsp_sha1_state *state, const char *chunk) {
 	register uint32_t a, b, c, d, e, t, f, k;
 	uint32_t w[80];
 
@@ -30,10 +30,10 @@ static void bsp_sha1_hash_chunk(struct bsp_sha1_state *state, const uint8_t *chu
 
 	for (int i = 0; i < 16; ++i) {
 		w[i] =
-			(((uint32_t)chunk[4 * i    ]) << 24) |
-			(((uint32_t)chunk[4 * i + 1]) << 16) |
-			(((uint32_t)chunk[4 * i + 2]) <<  8) |
-			(((uint32_t)chunk[4 * i + 3])      ) ;
+			(((uint32_t)(uint8_t)chunk[4 * i    ]) << 24) |
+			(((uint32_t)(uint8_t)chunk[4 * i + 1]) << 16) |
+			(((uint32_t)(uint8_t)chunk[4 * i + 2]) <<  8) |
+			(((uint32_t)(uint8_t)chunk[4 * i + 3])      ) ;
 	}
 
 	for (int i = 16; i < 80; ++i) {
@@ -94,7 +94,7 @@ void bsp_sha1_update(struct bsp_sha1_state *state, const char *buffer, size_t si
 	}
 
 	while (size >= sizeof(state->chunk)) {
-		bsp_sha1_hash_chunk(state, (uint8_t *)buffer);
+		bsp_sha1_hash_chunk(state, buffer);
 		buffer += sizeof(state->chunk);
 		size -= sizeof(state->chunk);
 	}
