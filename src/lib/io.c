@@ -70,9 +70,9 @@ void bsp_io_pwrite(struct bsp_ec *ec, struct bsp_io *io, const void *buffer, siz
 	if (!length)
 		return;
 
-	const char *bufp = buffer;
 	io->sha1_ready = false;
 
+	const char *bufp = buffer;
 	while (length > 0) {
 		ssize_t wrote = pwrite(io->fd, bufp, length, offset);
 		if (wrote == -1)
