@@ -1,0 +1,12 @@
+	set #0, -2
+	jump .jt_inst
+
+	dw .exit ;-8
+	nop ;-4
+	nop ;-3
+.jt_inst
+	jumptable #0 ;-2
+
+.exit
+	exit 0
+;;;; fatal

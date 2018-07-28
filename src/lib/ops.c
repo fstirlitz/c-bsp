@@ -158,7 +158,14 @@ OPFUNC(op_exit) {
 
 /* jumptable #reg */
 OPFUNC(op_jumptable) {
-	vm->pc_next = get_le32(bsp_ps_getp(ec, vm->ps, vm->pc_next + src[0] * 4, 4));
+	uint32_t offs = src[0];
+	if (offs & 0xc0000000)
+		bsp_die(ec, "jump table index overflow");
+	offs <<= 2;
+	if (vm->pc_next + offs < offs)
+		bsp_die(ec, "jump table index overflow");
+	offs += vm->pc_next;
+	vm->pc_next = get_le32(bsp_ps_getp(ec, vm->ps, offs, 4));
 }
 
 /* return */

@@ -1,0 +1,7 @@
+	set #0, 0x40000000
+	jumptable #0
+	dw .exit
+
+.exit
+	exit 0
+;;;; fatal
