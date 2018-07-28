@@ -312,6 +312,12 @@ static void postexec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode 
 		}
 	}
 
+	if (vm->pc_next == vm->pc) {
+		bsp_opflags_t flags = bsp_op_get_flags(opc);
+		if (flags & BSP_OPFLAG_TIGHT_LOOP)
+			bsp_die(ec, "tight infinite loop detected");
+	}
+
 	if (vm->pc_next <= vm->pc) {
 		if (++brbk_count > brbk_limit)
 			bsp_die(ec, "backward jump limit (%u) reached", brbk_limit);

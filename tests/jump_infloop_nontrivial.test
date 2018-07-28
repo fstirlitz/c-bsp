@@ -1,0 +1,3 @@
+	nop
+	jump 0
+;;;; fatal

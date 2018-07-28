@@ -1,0 +1,7 @@
+	set #0, 255
+loop:
+	push ret
+	decrement #0
+	jumpnz #0, loop
+ret:
+	return
