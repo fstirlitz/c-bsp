@@ -1,7 +1,9 @@
+	jumpnz #0, error
+	jumpnz #1, error
 	set #0, 2
 loop:
 	getvariable #1, #0
-	ifne #1, 0, error
+	jumpnz #1, error
 	increment #0
 	ifne #0, 256, loop
 
