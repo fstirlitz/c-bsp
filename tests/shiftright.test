@@ -1,3 +1,4 @@
-	shiftright #0, 32, 5
+	shiftright #0, 0x80000020, 5
+	xor #0, 0x4000000
 	exit #0
 ;;;; exit 1
