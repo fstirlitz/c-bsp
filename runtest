@@ -189,7 +189,9 @@ def rm_rf(node):
 	else:
 		node.unlink()
 
-if not args.keep:
+if args.keep:
+	print("=== Files kept in {} ===".format(fname_tmpdir))
+else:
 	rm_rf(fname_tmpdir)
 
 if expect_fatal:
