@@ -8,6 +8,9 @@ import subprocess
 import atexit
 import argparse
 
+sys.stdout = codecs.getwriter(sys.stdout.encoding)(sys.stdout.detach(), errors='surrogateescape')
+sys.stderr = codecs.getwriter(sys.stderr.encoding)(sys.stderr.detach(), errors='surrogateescape')
+
 def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('testfile', metavar='TEST_FILE', type=pathlib.Path)
@@ -116,11 +119,11 @@ if test_dis:
 	(_, dis_err) = disassembler.communicate()
 	if args.verbose and dis_err:
 		print("=== Disassembler error ===")
-		print(dis_err.decode('utf-8'))
+		print(dis_err.decode('utf-8', 'surrogateescape'))
 
 	if args.verbose:
 		print("=== Disassembly ===")
-		with fname_dis.open('r') as dis:
+		with fname_dis.open('r', errors='surrogateescape') as dis:
 			print(dis.read())
 		print("=== Compiling again ===")
 
@@ -201,7 +204,7 @@ if actual_data is not None and expect_data != actual_data:
 
 if discrepancy or args.verbose:
 	print("=== Standard error ===")
-	print(actual_err.decode('utf-8'))
+	print(actual_err.decode('utf-8', 'surrogateescape'))
 
 	if expect_msg is not None:
 		print("=== Expected output ===")
