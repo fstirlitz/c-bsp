@@ -238,28 +238,25 @@ _OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
 if discrepancy:
 	if args.replace:
 		import os
-		oldname = argv[0]
-		newname = argv[0] + '.new'
-		testfile = open(oldname, 'rt')
-		newfile  = open(newname, 'wt')
-		skip = False
-		for line in testfile:
-			if line.startswith(';;;;'):
-				sect, _, param = line[len(';;;;'):].strip().partition(' ')
-				skip = sect in _OUTPUT_SECTIONS
-			if not skip:
-				newfile.write(line)
-		if actual_msg:
-			newfile.write(';;;; output\n')
-			newfile.write(actual_msg)
-		if actual_data != in_data:
-			newfile.write(';;;; target\n')
-			newfile.write(actual_data.hex() + '\n')
-		if actual_fatal:
-			newfile.write(';;;; fatal\n')
-		elif actual_exit:
-			newfile.write(';;;; exit %u\n' % (actual_exit))
-		os.unlink(oldname)
-		os.rename(newname, oldname)
+		newname = args.testfile.with_suffix('.newtest')
+		with args.testfile.open('rt') as testfile, newname.open('wt') as newfile:
+			skip = False
+			for line in testfile:
+				if line.startswith(';;;;'):
+					sect, _, param = line[len(';;;;'):].strip().partition(' ')
+					skip = sect in _OUTPUT_SECTIONS
+				if not skip:
+					newfile.write(line)
+			if actual_msg:
+				newfile.write(';;;; output\n')
+				newfile.write(actual_msg)
+			if actual_data != in_data:
+				newfile.write(';;;; target\n')
+				newfile.write(actual_data.hex() + '\n')
+			if actual_fatal:
+				newfile.write(';;;; fatal\n')
+			elif actual_exit:
+				newfile.write(';;;; exit %u\n' % (actual_exit))
+		newname.replace(args.testfile)
 
 	sys.exit(1)
