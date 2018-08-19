@@ -46,7 +46,7 @@ static void validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
 			min = 0x10000;
 			rem = 3;
 		} else {
-			bsp_die(ec, "invalid UTF-8 code unit 0x%02x", *p);
+			bsp_die(ec, "invalid UTF-8 code unit 0x%02x", *(p - 1));
 		}
 
 		while (rem--) {
