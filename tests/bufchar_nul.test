@@ -1,0 +1,8 @@
+	bufchar 0
+	bufstring t
+	printbuf
+	exit #0
+t:
+	string "hello"
+;;;; output
+?hello

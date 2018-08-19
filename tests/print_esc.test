@@ -1,0 +1,6 @@
+	print bolded
+	exit #0
+bolded:
+	db 27, "[1m", "hello", 27, "[0m", 0
+;;;; output
+?[1mhello?[0m
