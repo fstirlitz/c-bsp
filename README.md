@@ -2,8 +2,8 @@
 
 [![Build Status](https://travis-ci.org/fstirlitz/c-bsp.svg?branch=master)](https://travis-ci.org/fstirlitz/c-bsp)
 
-This is a C11 implementation of the [Binary Scripted Patch specification,
-version as of September 2017][spec]. It was developed on Linux/glibc,
+This is a C11/POSIX implementation of the [Binary Scripted Patch specification,
+version 0.5.2 rev. 37][spec]. It was developed on Linux/glibc,
 but should be easy to port to other Unix-like systems.
 
 Contains:
@@ -57,4 +57,4 @@ Notes on implementation:
 - Interactive disassembler?
 - Symbolic control flow analysis?
 
-[spec]: https://github.com/aaaaaa123456789/bsp/blob/c2afec8713dd13f95f74c8c685008e455d2f2965/specification.md
+[spec]: https://github.com/aaaaaa123456789/bsp/blob/92d13c851899eeb06d26ce346ee4f6ab46123ee7/specification.md
