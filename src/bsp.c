@@ -331,31 +331,44 @@ static void fetch_cb(struct bsp_ec *ec, struct bsp_vm *vm) {
 
 static iconv_t iconv_cd = (iconv_t)-1;
 
-static void check_utf8(const char *msg, size_t length) {
-	for (const char *cp = msg; cp < msg + length; ++cp) {
+static size_t check_utf8(const char *msg, size_t length) {
+	const char *cp = msg;
+
+	for (; cp < msg + length; ++cp) {
 		uint8_t ch = *cp;
 		// specifically allow whitespace
 		if (ch == '\r' || ch == '\n' || ch == '\t')
 			continue;
+
 		// disallow other control characters (ANSI bombs, anyone?)
 		if (ch < 0x20)
-			bsp_die(ec, "attempt to print out an illegal character 0x%02x", ch);
+			break;
 	}
+
+	return cp - msg;
 }
 
 static void print_utf8(const char *msg, size_t length) {
-	if (iconv_cd == (iconv_t)-1) {
-		fwrite(msg, length, 1, stdout);
-		return;
-	}
-
 	const char *msgp = msg;
 	char buffer[1024], *bufp = buffer;
 	size_t bufl = sizeof(buffer);
 
 	while (length) {
+		size_t valid_chars = check_utf8(msgp, length);
+		size_t inl = valid_chars;
+
 		bufp = buffer; bufl = sizeof(buffer);
-		iconv(iconv_cd, (char **)&msgp, &length, &bufp, &bufl);
+		if (iconv_cd != (iconv_t)-1) {
+			iconv(iconv_cd, (char **)&msgp, &inl, &bufp, &bufl);
+		} else {
+			size_t adv = inl < sizeof(buffer) ? inl : sizeof(buffer);
+			memcpy(buffer, msgp, adv);
+
+			bufp += adv;
+			bufl -= adv;
+			msgp += adv;
+			inl  -= adv;
+		}
 
 		if (bufl == sizeof(buffer)) {
 			*bufp++ = '?';
@@ -369,18 +382,21 @@ static void print_utf8(const char *msg, size_t length) {
 			else if ((ch & 0xf8) == 0xf0)
 				s = 4;
 			msgp += s; length -= s;
+		} else {
+			length -= valid_chars - inl;
 		}
 
 		fwrite(buffer, bufp - buffer, 1, stdout);
 	}
 
-	bufp = buffer; bufl = sizeof(buffer);
-	iconv(iconv_cd, NULL, 0, &bufp, &bufl);
-	fwrite(buffer, bufp - buffer, 1, stdout);
+	if (iconv_cd != (iconv_t)-1) {
+		bufp = buffer; bufl = sizeof(buffer);
+		iconv(iconv_cd, NULL, 0, &bufp, &bufl);
+		fwrite(buffer, bufp - buffer, 1, stdout);
+	}
 }
 
 static void print_cb(struct bsp_ec *ec, struct bsp_vm *vm, const char *msg, size_t length) {
-	check_utf8(msg, length);
 	print_utf8(msg, length);
 	fputs("\n", stdout);
 }
@@ -389,7 +405,6 @@ static uint_fast32_t menu_cb(struct bsp_ec *ec, struct bsp_vm *vm,
 	uint_fast32_t count, const char *items[], const size_t lens[])
 {
 	for (uint_fast32_t i = 0; i < count; ++i) {
-		check_utf8(items[i], lens[i]);
 		printf("%lu. ", (unsigned long)i);
 		print_utf8(items[i], lens[i]);
 		fputs("\n", stdout);
