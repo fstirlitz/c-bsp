@@ -343,6 +343,13 @@ static size_t check_utf8(const char *msg, size_t length) {
 		// disallow other control characters (ANSI bombs, anyone?)
 		if (ch < 0x20)
 			break;
+
+		// disallow C1 control set as well (U+009B ≃ U+001B U+005B on some terminals)
+		if (ch == 0xc2) {
+			ch = *(cp + 1);
+			if (0x80 <= ch && ch <= 0x9f)
+				break;
+		}
 	}
 
 	return cp - msg;
