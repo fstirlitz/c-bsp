@@ -1,4 +1,5 @@
 prefix     = /usr/local
+bindir     = $(prefix)/bin
 libdir     = $(prefix)/lib
 includedir = $(prefix)/include
 
@@ -7,8 +8,8 @@ includedir = $(prefix)/include
 install: install-bin
 
 install-bin: all
-	install -Dm0755 bsp     $(DESTDIR)$(prefix)/bin/bsp
-	install -Dm0755 bspdis  $(DESTDIR)$(prefix)/bin/bspdis
+	install -Dm0755 bsp     $(DESTDIR)$(bindir)/bsp
+	install -Dm0755 bspdis  $(DESTDIR)$(bindir)/bspdis
 
 install-lib: all
 	# install -Dm0644 libbsp.a      $(DESTDIR)$(libdir)/libbsp.a
