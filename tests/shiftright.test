@@ -1,4 +1,19 @@
-	shiftright #0, 0x80000020, 5
-	xor #0, 0x4000000
-	exit #0
-;;;; exit 1
+	shiftright #0, 0xdeadface, 8
+	ifne #0, 0xdeadfa, bad
+
+	set #1, 4
+	shiftright #0, 0xdadeface, #1
+	ifne #0, 0xdadefac, bad
+
+	set #0, 0xdeadface
+	shiftright #0, 8
+	ifne #0, 0xdeadfa, bad
+
+	set #0, 0xdadeface
+	set #1, 4
+	shiftright #0, #1
+	ifne #0, 0xdadefac, bad
+
+	exit 0
+bad:
+	exit 1

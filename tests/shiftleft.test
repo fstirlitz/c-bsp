@@ -1,3 +1,19 @@
-	shiftleft #0, 1, 5
-	exit #0
-;;;; exit 32
+	shiftleft #0, 0xdeadface, 8
+	ifne #0, 0xadface00, bad
+
+	set #1, 4
+	shiftleft #0, 0xdadeface, #1
+	ifne #0, 0xadeface0, bad
+
+	set #0, 0xdeadface
+	shiftleft #0, 8
+	ifne #0, 0xadface00, bad
+
+	set #0, 0xdadeface
+	set #1, 4
+	shiftleft #0, #1
+	ifne #0, 0xadeface0, bad
+
+	exit 0
+bad:
+	exit 1
