@@ -557,14 +557,21 @@ static void dis_analyse(void) {
 				cls_set(ip + i, CLS_OPERAND);
 			}
 
+			bsp_opflags_t fl = bsp_op_get_flags(&opc);
+			bsp_opsems_t sems = bsp_op_get_sems(&opc);
+
 			uint32_t data_ptr = -1;
 			for (size_t i = 0; i < BSP_OPNUM; ++i) {
 				if (opc.optyp[i] != BSP_OPD_IMM32)
 					continue;
 
-				bsp_opsems_t sems = bsp_op_get_sems(&opc);
-
 				switch (BSP_OPSEM_AT(sems, i)) {
+				case BSP_OPSEM_USV:
+					if (opc.opval[i] > 0x10ffff)
+						fl |= BSP_OPFLAG_STOPS_FLOW;
+					else if ((opc.opval[i] & 0xd800) == 0xd800)
+						fl |= BSP_OPFLAG_STOPS_FLOW;
+					break;
 				case BSP_OPSEM_PTR_SHA1:
 					dis_mark_data(ip, opc.opval[i], 20, CLS_DATA);
 					dis_put_label(opc.opval[i]);
@@ -614,8 +621,6 @@ static void dis_analyse(void) {
 			}
 
 			ip += sz;
-
-			bsp_opflags_t fl = bsp_op_get_flags(&opc);
 
 			if (fl & BSP_OPFLAG_JUMP_TABLE) {
 				dis_jumptab_new(ip);
