@@ -176,10 +176,15 @@ inline static const char *cls_name(cls_t cls) {
 
 static bool had_diag = false;
 
-static void dis_diag(uint32_t off, const char *fmt, ...) {
-	va_list ap;
+#define DIS_ADDR_HINT (~(uint32_t)0)
 
-	fprintf(stderr, "%s: %s[+0x%x]: ", argv0, patch_fname, off);
+static void dis_diag(uint32_t off, const char *fmt, ...) {
+	if (off == DIS_ADDR_HINT)
+		fprintf(stderr, "%s: (command line hint): ", argv0);
+	else
+		fprintf(stderr, "%s: %s[+0x%x]: ", argv0, patch_fname, off);
+
+	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
@@ -449,7 +454,7 @@ static void parse_cmdline(char *argv[]) {
 
 			switch (htyp) {
 			case 0:
-				dis_mark_string(0, addr);
+				dis_mark_string(DIS_ADDR_HINT, addr);
 				break;
 			case 1:
 				cls_set_data(addr, CLS_DATA_START, 20);
@@ -461,7 +466,7 @@ static void parse_cmdline(char *argv[]) {
 				cls_set_data(addr, CLS_WORD_START, 4);
 				break;
 			case 4:
-				dis_mark_menu(0, addr);
+				dis_mark_menu(DIS_ADDR_HINT, addr);
 				break;
 			case 5:
 			case 7:
