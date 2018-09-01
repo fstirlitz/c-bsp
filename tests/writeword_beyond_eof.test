@@ -1,0 +1,5 @@
+	seekfwd 8
+	writeword 0xdeadface
+	exit 0
+;;;; target
+0000000000000000cefaadde

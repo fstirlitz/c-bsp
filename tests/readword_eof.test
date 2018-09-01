@@ -1,0 +1,3 @@
+	readword #0
+	exit 0
+;;;; fatal

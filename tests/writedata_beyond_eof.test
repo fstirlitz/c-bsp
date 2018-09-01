@@ -1,0 +1,7 @@
+	seekfwd 8
+	writedata data, 8
+	exit 0
+data:
+	hexdata 0011223344556677
+;;;; target
+00000000000000000011223344556677
