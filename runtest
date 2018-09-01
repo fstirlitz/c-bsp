@@ -26,6 +26,7 @@ testfile = args.testfile.open('rt')
 
 in_source    = []
 in_data      = bytearray()
+in_data_at   = 0
 in_choices   = []
 expect_msg   = []
 expect_data  = in_data
@@ -47,6 +48,8 @@ for line in testfile:
 			mode = 'output'
 		elif sect == 'data':
 			mode = 'data'
+		elif sect == 'data-at':
+			in_data_at = int(param.strip(), 0)
 		elif sect == 'target':
 			mode = 'target'
 			if expect_data is in_data:
@@ -87,7 +90,7 @@ in_source = ''.join(in_source).encode('utf-8')
 
 fname_tmpdir = pathlib.Path(tempfile.mkdtemp(prefix='bsptest-'))
 fname_bsp0   = fname_tmpdir / 'bsp0'
-fname_input  = (fname_tmpdir / 'input') if in_data else '/dev/null'
+fname_input  = fname_tmpdir / 'input'
 fname_target = fname_tmpdir / 'output'
 fname_dis    = fname_tmpdir / 'dis'
 fname_bsp1   = fname_tmpdir / 'bsp1'
@@ -148,9 +151,12 @@ if test_dis:
 					discrepancy = True
 
 # prepare input
-if in_data:
-	with fname_input.open('wb') as f:
+with fname_input.open('wb') as f:
+	f.seek(in_data_at)
+	if in_data:
 		f.write(in_data)
+	else:
+		f.truncate()
 
 if args.verbose:
 	print("=== Running ===")
@@ -177,6 +183,7 @@ actual_fatal = (actual_exit == 255)
 
 try:
 	with fname_target.open('rb') as f:
+		f.seek(in_data_at)
 		actual_data = f.read()
 except FileNotFoundError:
 	actual_data = None
