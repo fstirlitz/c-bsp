@@ -639,7 +639,8 @@ OPFUNC(op_menu) {
 		if (off == 0xffffffff)
 			break;
 		size_t len;
-		bsp_ps_getsz(ec, vm->ps, off, &len);
+		const char *item = bsp_ps_getsz(ec, vm->ps, off, &len);
+		validate_utf8(ec, item, len);
 		strtab_off += 4;
 		count++;
 	}

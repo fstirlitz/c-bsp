@@ -1,0 +1,9 @@
+	menu #0, menu
+	exit 0
+menu:
+	dw bad_utf8
+	dw -1
+bad_utf8:
+	db 0xff, 0x80, 0
+;;;; choose 0
+;;;; fatal
