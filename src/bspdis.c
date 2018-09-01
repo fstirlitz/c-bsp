@@ -79,13 +79,12 @@ typedef enum {
 	CLS_OPCODE       = 0x01, /* instruction */
 	CLS_OPERAND      = 0x11, /* operand */
 	CLS_STRING       = 0x02, /* string */
-	CLS_DATA_START   = 0x03, /* data start */
-	CLS_DATA         = 0x13, /* data continue */
-	CLS_BYTE_START   = 0x04,
-	CLS_WORD_START   = 0x05,
-	CLS_HALF_START   = 0x06,
-	CLS_PTR_START    = 0x07,
-	CLS_IPS_START    = 0x08,
+	CLS_DATA         = 0x03, /* data block */
+	CLS_BYTE         = 0x04,
+	CLS_WORD         = 0x05,
+	CLS_HALF         = 0x06,
+	CLS_PTR          = 0x07,
+	CLS_IPS          = 0x08,
 } cls_t;
 
 static const char *cls_label_prefix[0x0f] = {
@@ -134,12 +133,9 @@ inline static void cls_set(uint32_t offset, cls_t cls) {
 	*word |= ((clsword_t)cls) << (BITS_PER_CLS * (offset % CLS_PER_WORD));
 }
 
-inline static void cls_set_data(uint32_t offset, cls_t cls, size_t len) {
-	if (!len)
-		return;
-	cls_set(offset++, cls);
-	while (--len)
-		cls_set(offset++, CLS_DATA);
+inline static void cls_set_range(uint32_t offset, uint32_t len, cls_t cls) {
+	while (len--)
+		cls_set(offset++, cls);
 }
 
 inline static void dis_put_label(uint32_t addr) {
@@ -148,15 +144,23 @@ inline static void dis_put_label(uint32_t addr) {
 
 inline static const char *cls_name(cls_t cls) {
 	static const char *clsnames[] = {
-		[CLS_UNKNOWN   ] = "unknown",
-		[CLS_OPCODE    ] = "instruction",
-		[CLS_STRING    ] = "string",
-		[CLS_DATA_START] = "data block",
-		[CLS_HALF_START] = "data block",
-		[CLS_WORD_START] = "data block",
-		[CLS_PTR_START ] = "data block",
-		[CLS_DATA      ] = "data block",
-		[CLS_OPERAND   ] = "operand",
+		[CLS_UNKNOWN               ] = "unknown",
+		[CLS_OPCODE                ] = "an instruction",
+		[CLS_STRING                ] = "a string",
+		[CLS_DATA                  ] = "a data block",
+		[CLS_HALF                  ] = "a halfword",
+		[CLS_WORD                  ] = "a word",
+		[CLS_PTR                   ] = "a pointer",
+		[CLS_IPS                   ] = "an embedded IPS patch",
+
+		[CLS_UNKNOWN | CLS_CONTINUE] = "the middle of unknown",
+		[CLS_OPCODE  | CLS_CONTINUE] = "the middle of an instruction",
+		[CLS_STRING  | CLS_CONTINUE] = "the middle of a string",
+		[CLS_DATA    | CLS_CONTINUE] = "the middle of a data block",
+		[CLS_HALF    | CLS_CONTINUE] = "the middle of a halfword",
+		[CLS_WORD    | CLS_CONTINUE] = "the middle of a word",
+		[CLS_PTR     | CLS_CONTINUE] = "the middle of a pointer",
+		[CLS_IPS     | CLS_CONTINUE] = "the middle of an embedded IPS patch",
 	};
 
 	return clsnames[cls & ~CLS_LABELLED];
@@ -193,6 +197,36 @@ static void dis_diag(uint32_t off, const char *fmt, ...) {
 	had_diag = true;
 }
 
+static bool dis_check_unmarked(uint32_t from, uint32_t addr, uint32_t length, const char *prefix) {
+	while (length--) {
+		cls_t cls = cls_get(addr);
+		if (cls & ~CLS_LABELLED) {
+			dis_diag(from, "%s: 0x%x is already marked as %s", prefix, addr, cls_name(cls));
+			return false;
+		}
+		addr++;
+	}
+
+	return true;
+}
+
+static void dis_mark_data(uint32_t from, uint32_t addr, uint32_t length, cls_t cls_start) {
+	if (addr > patch_space.limit) {
+		dis_diag(from, "bad data reference (0x%x)", addr);
+		return;
+	}
+
+	if (!length)
+		return;
+
+	if (!dis_check_unmarked(from, addr, length, "bad data reference"))
+		return;
+
+	cls_set(addr, cls_start);
+	if (length > 1)
+		cls_set_range(addr + 1, length - 1, cls_start | CLS_CONTINUE);
+}
+
 static void dis_mark_string(uint32_t from, uint32_t addr) {
 	if (addr > patch_space.limit) {
 		dis_diag(from, "bad string reference (0x%x)", addr);
@@ -209,16 +243,12 @@ static void dis_mark_string(uint32_t from, uint32_t addr) {
 		}
 	}
 
-	cls_t cls = CLS_STRING;
-	do {
-		cls_set(addr, cls);
-		cls = CLS_STRING;
-	} while (addr++ < end);
+	if (!dis_check_unmarked(from, addr, end - addr + 1, ""))
+		return;
+	cls_set_range(addr, end - addr + 1, CLS_STRING);
 }
 
 static void dis_mark_menu(uint32_t from, uint32_t addr) {
-	cls_t cls = CLS_PTR_START;
-
 	for (;;) {
 		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
 			dis_diag(from, "bad menu reference (0x%x)", addr);
@@ -227,13 +257,11 @@ static void dis_mark_menu(uint32_t from, uint32_t addr) {
 
 		uint32_t saddr = get_le32(patch_space.space + addr);
 		if (saddr == 0xffffffff) {
-			cls_set_data(addr, CLS_WORD_START, 4);
+			dis_mark_data(from, addr, 4, CLS_WORD);
 			break;
 		}
 
-		cls_set_data(addr, cls, 4);
-		cls = CLS_PTR_START;
-
+		dis_mark_data(from, addr, 4, CLS_PTR);
 		dis_mark_string(addr, saddr);
 		dis_put_label(saddr);
 		addr += 4;
@@ -304,7 +332,7 @@ static void dis_mark_ips(uint32_t from, uint32_t addr) {
 		}
 	}
 
-	cls_set_data(start, CLS_IPS_START, addr - start);
+	dis_mark_data(from, start, addr - start, CLS_IPS);
 }
 
 static struct queue_u32 jumptabs = Q_EMPTY;
@@ -326,9 +354,9 @@ static void dis_jumptab_grab(void) {
 		default:
 			continue;
 		case CLS_UNKNOWN:
-		case CLS_DATA_START:
-		case CLS_PTR_START:
-			cls_set_data(addr, CLS_PTR_START, 4);
+		case CLS_DATA:
+		case CLS_PTR:
+			dis_mark_data(addr, addr, 4, CLS_PTR);
 		}
 
 		uint32_t target = get_le32(patch_space.space + addr);
@@ -421,14 +449,16 @@ static void parse_cmdline(char *argv[]) {
 			if (*suff == ':')
 				++suff;
 
+			uint32_t from = DIS_ADDR_HINT;
 			while (*suff == '*') {
 				if (addr > patch_space.limit) {
 					fprintf(stderr, "%s: hinted pointer 0x%lx is too high\n", argv0, addr);
 					exit(-1);
 				}
-				cls_set_data(addr, CLS_PTR_START, 4);
+				dis_mark_data(from, addr, 4, CLS_PTR);
 				if (label)
 					dis_put_label(addr);
+				from = addr;
 				addr = get_le32(patch_space.space + addr);
 				label = true;
 				suff++;
@@ -440,7 +470,7 @@ static void parse_cmdline(char *argv[]) {
 				if (suff == slen || *suff)
 					goto bad_hint;
 
-				cls_set_data(addr, CLS_DATA_START, len);
+				dis_mark_data(DIS_ADDR_HINT, addr, len, CLS_DATA);
 				if (label)
 					dis_put_label(addr);
 				continue;
@@ -457,13 +487,13 @@ static void parse_cmdline(char *argv[]) {
 				dis_mark_string(DIS_ADDR_HINT, addr);
 				break;
 			case 1:
-				cls_set_data(addr, CLS_DATA_START, 20);
+				dis_mark_data(DIS_ADDR_HINT, addr, 20, CLS_DATA);
 				break;
 			case 2:
-				cls_set_data(addr, CLS_HALF_START, 2);
+				dis_mark_data(DIS_ADDR_HINT, addr, 2, CLS_HALF);
 				break;
 			case 3:
-				cls_set_data(addr, CLS_WORD_START, 4);
+				dis_mark_data(DIS_ADDR_HINT, addr, 4, CLS_WORD);
 				break;
 			case 4:
 				dis_mark_menu(DIS_ADDR_HINT, addr);
@@ -536,7 +566,7 @@ static void dis_analyse(void) {
 
 				switch (BSP_OPSEM_AT(sems, i)) {
 				case BSP_OPSEM_PTR_SHA1:
-					cls_set_data(opc.opval[i], CLS_DATA_START, 20);
+					dis_mark_data(ip, opc.opval[i], 20, CLS_DATA);
 					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_STR:
@@ -559,18 +589,20 @@ static void dis_analyse(void) {
 				case BSP_OPSEM_LENGTH:
 					// XXX: we exploit the fact that in all currently defined opcodes,
 					// data length follows data pointer; this may fail in the future!
-					cls_set_data(data_ptr, CLS_DATA_START, opc.opval[i]);
+					if (data_ptr == -1)
+						break;
+					dis_mark_data(ip, data_ptr, opc.opval[i], CLS_DATA);
 					break;
 				case BSP_OPSEM_PTR_DATA8:
-					cls_set_data(opc.opval[i], CLS_BYTE_START, 1);
+					dis_mark_data(ip, opc.opval[i], 1, CLS_BYTE);
 					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA16:
-					cls_set_data(opc.opval[i], CLS_HALF_START, 2);
+					dis_mark_data(ip, opc.opval[i], 2, CLS_HALF);
 					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_DATA32:
-					cls_set_data(opc.opval[i], CLS_WORD_START, 4);
+					dis_mark_data(ip, opc.opval[i], 4, CLS_WORD);
 					dis_put_label(opc.opval[i]);
 					break;
 				case BSP_OPSEM_PTR_IPS:
@@ -702,7 +734,8 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
-		case CLS_STRING: {
+		case CLS_STRING:
+		case CLS_STRING | CLS_CONTINUE: {
 			uint32_t offset_start = offset;
 			while (cls_get(++offset) == CLS_STRING)
 				if (patch_space.space[offset - 1] == 0)
@@ -722,7 +755,7 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
-		case CLS_PTR_START: {
+		case CLS_PTR: {
 			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 4 : 0, 12);
 
 			uint32_t value = get_le32(patch_space.space + offset);
@@ -739,7 +772,7 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
-		case CLS_WORD_START: {
+		case CLS_WORD: {
 			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 4 : 0, 12);
 
 			uint32_t value = get_le32(patch_space.space + offset);
@@ -750,7 +783,7 @@ static void dis_print(FILE *outf) {
 		}
 
 		/* XXX */
-		case CLS_HALF_START: {
+		case CLS_HALF: {
 			fhexdump(outf, patch_space.space + offset, dump_opcodes ? 2 : 0, 12);
 
 			uint16_t value = get_le16(patch_space.space + offset);
@@ -760,11 +793,11 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
-		case CLS_IPS_START:
-		case CLS_DATA_START: {
+		case CLS_IPS:
+		case CLS_DATA: {
 			uint32_t offset_start = offset;
 			uint32_t offset_cur = offset;
-			while (cls_get(++offset) == CLS_DATA)
+			while (cls_get(++offset) & CLS_CONTINUE)
 				if (offset == 0xffffffff)
 					break;
 
@@ -784,7 +817,7 @@ static void dis_print(FILE *outf) {
 			break;
 		}
 
-		case CLS_BYTE_START:
+		case CLS_BYTE:
 		default: {
 			fhexdump(outf, NULL, 0, 12);
 
