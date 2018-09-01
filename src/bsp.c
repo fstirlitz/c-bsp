@@ -647,6 +647,12 @@ static void scratch_open(int mode) {
 	fchmod(scratch_fd, mode);
 }
 
+#if defined(__linux__) && defined(__GLIBC__)
+#	if __GLIBC__ == 2 && __GLIBC_MINOR >= 27
+#		define HAVE_COPY_FILE_RANGE 1
+#	endif
+#endif
+
 static void scratch_clone(void) {
 	int fd_orig = open(source_fname, O_RDONLY);
 	if (fd_orig == -1) {
@@ -690,8 +696,58 @@ static void scratch_clone(void) {
 		}
 #endif
 
+#if defined(HAVE_COPY_FILE_RANGE)
+		bool use_copy_file_range = true;
+#endif
+
 		while (wanted != 0) {
 			ssize_t got;
+
+#if defined(HAVE_COPY_FILE_RANGE)
+			if (use_copy_file_range) {
+				if (wanted == -1) {
+					off_t cur = lseek(fd_orig, 0, SEEK_CUR);
+					if (cur == -1) {
+						fprintf(stderr, "%s: lseek(%s): %s\n", argv0, source_fname, strerror(errno));
+						exit(-1);
+					}
+
+					off_t end = lseek(fd_orig, 0, SEEK_END);
+					if (end == -1) {
+						fprintf(stderr, "%s: lseek(%s): %s\n", argv0, source_fname, strerror(errno));
+						exit(-1);
+					}
+
+					wanted = end - cur;
+					if (wanted == 0)
+						goto done;
+				}
+
+				got = copy_file_range(fd_orig, NULL, scratch_fd, NULL, wanted, 0);
+
+				if (got == 0)
+					goto done;
+
+				if (got == -1) {
+					switch (errno) {
+					case EXDEV:
+						use_copy_file_range = false;
+						continue;
+					default:
+						fprintf(stderr, "%s: copy_file_range(%s, %s): %s\n", argv0, source_fname, scratch_fname ? scratch_fname : "[ephemeral]", strerror(errno));
+						exit(-1);
+					}
+				}
+
+				target_length += got;
+				if (wanted != -1) {
+					wanted -= got;
+				}
+
+				continue;
+			}
+#endif
+
 			char buffer[2048];
 
 			got = read(fd_orig, buffer,
