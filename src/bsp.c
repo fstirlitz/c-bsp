@@ -646,35 +646,74 @@ static void scratch_clone(void) {
 
 	// XXX: copy xattrs, acls
 
+	off_t wanted = -1;
+#if defined(SEEK_HOLE) && defined(SEEK_DATA)
+	off_t hoff = 0, doff = 0;
+#endif
+
 	uint_fast32_t target_length = 0;
 	for (;;) {
-		char buffer[2048];
-		ssize_t got = read(fd_orig, buffer, sizeof(buffer));
-		if (got == 0) {
-			break;
-		}
-
-		if (got == -1) {
-			fprintf(stderr, "%s: read(%s): %s\n", argv0, source_fname, strerror(errno));
-			exit(-1);
-		}
-
-		target_length += got;
-
-		char *bufp = buffer;
-		while (got > 0) {
-			ssize_t wrote = write(scratch_fd, bufp, got);
-
-			if (wrote == -1) {
-				fprintf(stderr, "%s: write(%s): %s\n", argv0, scratch_fname, strerror(errno));
+#if defined(SEEK_HOLE) && defined(SEEK_DATA)
+		doff = lseek(fd_orig, hoff, SEEK_DATA);
+		if (doff != -1) {
+			hoff = lseek(fd_orig, doff, SEEK_HOLE);
+			if (lseek(fd_orig, doff, SEEK_SET) == -1) {
+				fprintf(stderr, "%s: lseek(%s): %s\n", argv0, source_fname, strerror(errno));
 				exit(-1);
 			}
 
-			got -= wrote;
-			bufp += wrote;
+			if (lseek(scratch_fd, doff, SEEK_SET) == -1) {
+				fprintf(stderr, "%s: lseek(%s): %s\n", argv0, scratch_fname, strerror(errno));
+				exit(-1);
+			}
+
+			wanted = hoff - doff;
+		} else if (errno == ENXIO) {
+			break;
+		} else if (errno == EINVAL) {
+			wanted = -1;
+		} else {
+			fprintf(stderr, "%s: lseek(%s): %s\n", argv0, scratch_fname, strerror(errno));
+			exit(-1);
+		}
+#endif
+
+		while (wanted != 0) {
+			ssize_t got;
+			char buffer[2048];
+
+			got = read(fd_orig, buffer,
+				wanted > sizeof(buffer) || wanted == -1 ? sizeof(buffer) : wanted);
+			if (got == 0) {
+				goto done;
+			}
+
+			if (got == -1) {
+				fprintf(stderr, "%s: read(%s): %s\n", argv0, source_fname, strerror(errno));
+				exit(-1);
+			}
+
+			target_length += got;
+			if (wanted != -1)
+				wanted -= got;
+
+			char *bufp = buffer;
+			while (got > 0) {
+				ssize_t wrote = write(scratch_fd, bufp, got);
+
+				if (wrote == -1) {
+					fprintf(stderr, "%s: write(%s): %s\n", argv0, scratch_fname, strerror(errno));
+					exit(-1);
+				}
+
+				got -= wrote;
+				bufp += wrote;
+			}
+
 		}
 	}
 
+done:
 	close(fd_orig);
 }
 
