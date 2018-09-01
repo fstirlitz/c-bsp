@@ -1,0 +1,5 @@
+	print bad_utf8
+	exit 0
+bad_utf8:
+	db 0xff, 0x80, 0
+;;;; fatal
