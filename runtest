@@ -8,8 +8,11 @@ import subprocess
 import atexit
 import argparse
 
-sys.stdout = codecs.getwriter(sys.stdout.encoding)(sys.stdout.detach(), errors='surrogateescape')
-sys.stderr = codecs.getwriter(sys.stderr.encoding)(sys.stderr.detach(), errors='surrogateescape')
+def reconfigure(stream):
+	return codecs.getwriter(stream.encoding)(stream.detach(), errors='surrogateescape')
+
+sys.stdout = reconfigure(sys.stdout)
+sys.stderr = reconfigure(sys.stderr)
 
 def parse_args():
 	parser = argparse.ArgumentParser()
