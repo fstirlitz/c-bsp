@@ -20,6 +20,7 @@ def parse_args():
 	parser.add_argument('-u', '--update', action='store_const', const=True)
 	parser.add_argument('-v', '--verbose', action='store_const', const=True)
 	parser.add_argument('-k', '--keep', action='store_const', const=True)
+	parser.add_argument('--reference', action='store_const', const=True)
 	parser.add_argument('--no-setrlimit', action='store_const', const=True)
 	return parser.parse_args()
 
@@ -35,7 +36,8 @@ expect_msg   = []
 expect_data  = in_data
 expect_fatal = False
 expect_exit  = 0
-test_dis     = True
+test_dis     = not args.reference
+test_skipout = False
 
 mode = 'source'
 for line in testfile:
@@ -167,22 +169,52 @@ if args.verbose:
 import resource
 
 def set_limits():
-	as_limit = 64 * 1024 * 1024
+	as_limit = 1024 * 1024 * 1024
 	resource.setrlimit(resource.RLIMIT_AS, (as_limit, as_limit))
 
-interpreter = subprocess.Popen(
-	['./bsp', '-N16', '-I8192', '-dttk' if args.verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)],
-	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=None if args.no_setrlimit else set_limits
+if args.reference:
+	argv = ['node', 'bspcomp/patcher.js', str(fname_bsp0), str(fname_input), str(fname_target)]
+else:
+	argv = ['./bsp', '-N16', '-I8192', '-dttk' if args.verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)]
+
+interpreter = subprocess.Popen(argv,
+	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+	preexec_fn=None if args.no_setrlimit else set_limits
 )
 
-(actual_msg, actual_err) = interpreter.communicate(
-	input=(''.join('{}\n'.format(ch) for ch in in_choices) + 'q\n').encode('ascii'))
+with interpreter:
+	(actual_msg, actual_err) = interpreter.communicate(
+		input=(''.join('{}\n'.format(ch) for ch in in_choices) + 'q\n').encode('ascii'))
 
-actual_msg = actual_msg.decode('utf-8')
-if actual_msg and not actual_msg.endswith('\n'):
-	actual_msg += '\n'
-actual_exit = interpreter.returncode
-actual_fatal = (actual_exit == 255)
+	actual_err = actual_err.decode('utf-8', 'surrogateescape')
+	actual_msg = actual_msg.decode('utf-8')
+	if actual_msg and not actual_msg.endswith('\n'):
+		actual_msg += '\n'
+	if args.reference:
+		if interpreter.returncode != 0:
+			actual_msg_lines = actual_msg.rstrip('\n').split('\n')
+			last_line = actual_msg_lines.pop()
+			if last_line.startswith('Error: '):
+				actual_fatal = True
+				actual_exit = None
+				actual_msg = '\n'.join(actual_msg_lines)
+			elif last_line.startswith('Patch exited with exit status '):
+				actual_fatal = False
+				actual_exit = int(last_line[len('Patch exited with exit status '):])
+				actual_msg = '\n'.join(actual_msg_lines)
+			else:
+				actual_fatal = True
+				actual_exit = None
+		else:
+			actual_exit = 0
+			actual_fatal = False
+	else:
+		if interpreter.returncode == 255:
+			actual_fatal = True
+			actual_exit = None
+		else:
+			actual_fatal = False
+			actual_exit = interpreter.returncode
 
 try:
 	with fname_target.open('rb') as f:
@@ -216,22 +248,27 @@ if actual_data is not None and expect_data != actual_data:
 
 if discrepancy or args.verbose:
 	print("=== Standard error ===")
-	print(actual_err.decode('utf-8', 'surrogateescape'))
+	print(actual_err)
 
 	if expect_msg is not None:
 		print("=== Expected output ===")
 		print(expect_msg)
 	else:
-		print("=== (No expected output) ===")
+		print("=== No expected output ===")
 	if expect_msg != actual_msg:
 		print("=== Actual output ===")
 		print(actual_msg)
 
 	print("=== Expected final data ===")
 	print(expect_data.hex())
-	if expect_data != actual_data and actual_data is not None:
-		print("=== Actual final data ===")
-		print(actual_data.hex())
+	if actual_data is not None:
+		if expect_data != actual_data:
+			print("=== Actual final data ===")
+			print(actual_data.hex())
+		else:
+			print("=== Actual final data matches ===")
+	else:
+		print("=== No actual final data ===")
 
 	if not expect_fatal:
 		print("=== Expected exit code: {} ===".format(expect_exit))
@@ -239,9 +276,14 @@ if discrepancy or args.verbose:
 			print("=== Unexpected fatal error ===")
 		elif expect_exit != actual_exit:
 			print("=== Actual exit code: {} ===".format(actual_exit))
+		else:
+			print("=== Actual exit code matches ===")
 	else:
-		if not actual_fatal:
-			print("=== Expected fatal error did not happen ===")
+		print("=== Expected a fatal error ===")
+		if actual_fatal:
+			print("=== Expected fatal error raised ===")
+		else:
+			print("=== Actual exit code: {} ===".format(actual_exit))
 
 _OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
 
