@@ -1,0 +1,7 @@
+	seekend 2
+	writehalfword 1
+	exit 0
+;;;; data-at 0xfffffffc
+;;;; data
+00 00 00 00
+;;;; fatal
