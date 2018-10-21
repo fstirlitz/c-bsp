@@ -175,7 +175,7 @@ def set_limits():
 if args.reference:
 	argv = ['node', 'bspcomp/patcher.js', str(fname_bsp0), str(fname_input), str(fname_target)]
 else:
-	argv = ['./bsp', '-N16', '-I8192', '-dttk' if args.verbose else '-k', str(fname_bsp0), str(fname_input), str(fname_target)]
+	argv = ['./bsp', '-N16', '-I8192', '-dttk' if args.verbose else '-dk', str(fname_bsp0), str(fname_input), str(fname_target)]
 
 interpreter = subprocess.Popen(argv,
 	stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -223,6 +223,20 @@ with interpreter:
 			if interpreter.returncode == 255:
 				actual_fatal = True
 				actual_exit = None
+			elif interpreter.returncode == 254:
+				actual_fatal = False
+				for line in reversed(actual_err.splitlines()):
+					left, sep, line = line.partition(': ')
+					if sep != ': ':
+						continue
+					left, sep, line = line.partition(': ')
+					if sep != ': ':
+						continue
+					if line.startswith('patching failed, exit code '):
+						actual_exit = int(line[len('patching failed, exit code '):])
+						break
+				else:
+					raise ValueError(actual_err)
 			else:
 				actual_fatal = False
 				actual_exit = interpreter.returncode
