@@ -112,7 +112,7 @@ compiler = subprocess.Popen(
 )
 compiler.stdin.write(in_source)
 compiler.stdin.close()
-if compiler.wait() != 0:
+if compiler.wait(timeout=10) != 0:
 	print("=== Compilation error ===")
 	sys.exit(1)
 
@@ -124,7 +124,7 @@ if test_dis:
 		['./bspdis', '-n', '-o', str(fname_dis), str(fname_bsp0)],
 		stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
-	(_, dis_err) = disassembler.communicate()
+	(_, dis_err) = disassembler.communicate(timeout=10)
 	if args.verbose and dis_err:
 		print("=== Disassembler error ===")
 		print(dis_err.decode('utf-8', 'surrogateescape'))
@@ -138,7 +138,7 @@ if test_dis:
 	compiler = subprocess.Popen(
 		['bspcomp/bspcomp', str(fname_dis), str(fname_bsp1)]
 	)
-	if compiler.wait() != 0:
+	if compiler.wait(timeout=10) != 0:
 		print("=== Second-pass compilation error ===")
 		discrepancy = True
 	else:
@@ -183,38 +183,49 @@ interpreter = subprocess.Popen(argv,
 )
 
 with interpreter:
-	(actual_msg, actual_err) = interpreter.communicate(
-		input=(''.join('{}\n'.format(ch) for ch in in_choices) + 'q\n').encode('ascii'))
-
-	actual_err = actual_err.decode('utf-8', 'surrogateescape')
-	actual_msg = actual_msg.decode('utf-8')
-	if actual_msg and not actual_msg.endswith('\n'):
-		actual_msg += '\n'
-	if args.reference:
-		if interpreter.returncode != 0:
-			actual_msg_lines = actual_msg.rstrip('\n').split('\n')
-			last_line = actual_msg_lines.pop()
-			if last_line.startswith('Error: '):
-				actual_fatal = True
-				actual_exit = None
-				actual_msg = '\n'.join(actual_msg_lines)
-			elif last_line.startswith('Patch exited with exit status '):
-				actual_fatal = False
-				actual_exit = int(last_line[len('Patch exited with exit status '):])
-				actual_msg = '\n'.join(actual_msg_lines)
-			else:
-				actual_fatal = True
-				actual_exit = None
-		else:
-			actual_exit = 0
-			actual_fatal = False
+	try:
+		(actual_msg, actual_err) = interpreter.communicate(
+			input=(''.join('{}\n'.format(ch) for ch in in_choices) + 'q\n').encode('ascii'),
+			timeout=10)
+	except subprocess.TimeoutExpired as e:
+		interpreter.kill()
+		(actual_msg, actual_err) = interpreter.communicate()
+		actual_err = actual_err.decode('utf-8', 'surrogateescape')
+		actual_msg = actual_msg.decode('utf-8')
+		if actual_msg and not actual_msg.endswith('\n'):
+			actual_msg += '\n'
+		actual_fatal = True
+		actual_exit = None
 	else:
-		if interpreter.returncode == 255:
-			actual_fatal = True
-			actual_exit = None
+		actual_err = actual_err.decode('utf-8', 'surrogateescape')
+		actual_msg = actual_msg.decode('utf-8')
+		if actual_msg and not actual_msg.endswith('\n'):
+			actual_msg += '\n'
+		if args.reference:
+			if interpreter.returncode != 0:
+				actual_msg_lines = actual_msg.rstrip('\n').split('\n')
+				last_line = actual_msg_lines.pop()
+				if last_line.startswith('Error: '):
+					actual_fatal = True
+					actual_exit = None
+					actual_msg = '\n'.join(actual_msg_lines)
+				elif last_line.startswith('Patch exited with exit status '):
+					actual_fatal = False
+					actual_exit = int(last_line[len('Patch exited with exit status '):])
+					actual_msg = '\n'.join(actual_msg_lines)
+				else:
+					actual_fatal = True
+					actual_exit = None
+			else:
+				actual_exit = 0
+				actual_fatal = False
 		else:
-			actual_fatal = False
-			actual_exit = interpreter.returncode
+			if interpreter.returncode == 255:
+				actual_fatal = True
+				actual_exit = None
+			else:
+				actual_fatal = False
+				actual_exit = interpreter.returncode
 
 try:
 	with fname_target.open('rb') as f:
