@@ -25,6 +25,7 @@ menu:
 .five:
 	string "five"
 ;;;; choose 3
+;;;; skipoutref
 ;;;; output
 0. zero
 1. one

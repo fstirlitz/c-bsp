@@ -4,5 +4,6 @@
 	exit #0
 t:
 	string "hello"
+;;;; skipoutref
 ;;;; output
 ?hello

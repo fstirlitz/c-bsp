@@ -2,5 +2,6 @@
 	exit #0
 bolded:
 	db 27, "[1m", "hello", 27, "[0m", 0
+;;;; skipoutref
 ;;;; output
 ?[1mhello?[0m

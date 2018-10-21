@@ -365,6 +365,7 @@ the_menu:
 item:
 	string "item"
 ;;;; choose 0
+;;;; skipoutref
 ;;;; output
 0. item
 1. item

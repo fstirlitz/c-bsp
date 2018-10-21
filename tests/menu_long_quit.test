@@ -364,6 +364,7 @@ the_menu:
 	dw -1
 item:
 	string "item"
+;;;; skipoutref
 ;;;; output
 0. item
 1. item

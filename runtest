@@ -68,6 +68,8 @@ for line in testfile:
 				expect_diswarn = None
 			else:
 				expect_diswarn = True
+		elif sect == 'skipoutref':
+			test_skipout = args.reference
 		elif sect == 'exit':
 			param = param.strip()
 			if param == 'fatal':
@@ -273,7 +275,7 @@ else:
 
 if expect_exit != actual_exit:
 	discrepancy = True
-if expect_msg != actual_msg:
+if not test_skipout and expect_msg != actual_msg:
 	discrepancy = True
 if actual_data is not None and expect_data != actual_data:
 	discrepancy = True
