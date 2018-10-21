@@ -1,3 +1,3 @@
-	stackshift 0x1000
+	stackshift 0x100000
 	jump 0
 ;;;; fatal
