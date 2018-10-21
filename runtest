@@ -17,7 +17,7 @@ sys.stderr = reconfigure(sys.stderr)
 def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('testfile', metavar='TEST_FILE', type=pathlib.Path)
-	parser.add_argument('-r', '--replace', action='store_const', const=True)
+	parser.add_argument('-u', '--update', action='store_const', const=True)
 	parser.add_argument('-v', '--verbose', action='store_const', const=True)
 	parser.add_argument('-k', '--keep', action='store_const', const=True)
 	parser.add_argument('--no-setrlimit', action='store_const', const=True)
@@ -246,7 +246,7 @@ if discrepancy or args.verbose:
 _OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
 
 if discrepancy:
-	if args.replace:
+	if args.update:
 		import os
 		newname = args.testfile.with_suffix('.newtest')
 		with args.testfile.open('rt') as testfile, newname.open('wt') as newfile:
