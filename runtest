@@ -34,7 +34,6 @@ in_data_at   = 0
 in_choices   = []
 expect_msg   = []
 expect_data  = in_data
-expect_fatal = False
 expect_exit  = 0
 test_dis     = not args.reference
 test_skipout = False
@@ -64,7 +63,7 @@ for line in testfile:
 		elif sect == 'choose':
 			in_choices.append(int(param.strip(), 0))
 		elif sect == 'fatal':
-			expect_fatal = True
+			expect_exit = None
 		elif sect == 'skipdis':
 			test_dis = False
 		elif sect == 'exit':
@@ -194,7 +193,6 @@ with interpreter:
 		actual_msg = actual_msg.decode('utf-8')
 		if actual_msg and not actual_msg.endswith('\n'):
 			actual_msg += '\n'
-		actual_fatal = True
 		actual_exit = None
 	else:
 		actual_err = actual_err.decode('utf-8', 'surrogateescape')
@@ -206,25 +204,19 @@ with interpreter:
 				actual_msg_lines = actual_msg.rstrip('\n').split('\n')
 				last_line = actual_msg_lines.pop()
 				if last_line.startswith('Error: '):
-					actual_fatal = True
 					actual_exit = None
 					actual_msg = '\n'.join(actual_msg_lines)
 				elif last_line.startswith('Patch exited with exit status '):
-					actual_fatal = False
 					actual_exit = int(last_line[len('Patch exited with exit status '):])
 					actual_msg = '\n'.join(actual_msg_lines)
 				else:
-					actual_fatal = True
 					actual_exit = None
 			else:
 				actual_exit = 0
-				actual_fatal = False
 		else:
 			if interpreter.returncode == 255:
-				actual_fatal = True
 				actual_exit = None
 			elif interpreter.returncode == 254:
-				actual_fatal = False
 				for line in reversed(actual_err.splitlines()):
 					left, sep, line = line.partition(': ')
 					if sep != ': ':
@@ -238,7 +230,6 @@ with interpreter:
 				else:
 					raise ValueError(actual_err)
 			else:
-				actual_fatal = False
 				actual_exit = interpreter.returncode
 
 try:
@@ -261,10 +252,7 @@ if args.keep:
 else:
 	rm_rf(fname_tmpdir)
 
-if expect_fatal:
-	if not actual_fatal:
-		discrepancy = True
-elif expect_exit != actual_exit:
+if expect_exit != actual_exit:
 	discrepancy = True
 if expect_msg != actual_msg:
 	discrepancy = True
@@ -295,20 +283,19 @@ if discrepancy or args.verbose:
 	else:
 		print("=== No actual final data ===")
 
-	if not expect_fatal:
+	if expect_exit is not None:
 		print("=== Expected exit code: {} ===".format(expect_exit))
-		if actual_fatal:
-			print("=== Unexpected fatal error ===")
-		elif expect_exit != actual_exit:
-			print("=== Actual exit code: {} ===".format(actual_exit))
-		else:
-			print("=== Actual exit code matches ===")
 	else:
 		print("=== Expected a fatal error ===")
-		if actual_fatal:
-			print("=== Expected fatal error raised ===")
-		else:
+
+	if expect_exit != actual_exit:
+		if actual_exit is not None:
 			print("=== Actual exit code: {} ===".format(actual_exit))
+	else:
+		if actual_exit is not None:
+			print("=== Actual exit code matches ===")
+		else:
+			print("=== Expected fatal error raised ===")
 
 _OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
 
@@ -330,7 +317,7 @@ if discrepancy:
 			if actual_data != in_data:
 				newfile.write(';;;; target\n')
 				newfile.write(actual_data.hex() + '\n')
-			if actual_fatal:
+			if actual_exit is None:
 				newfile.write(';;;; fatal\n')
 			elif actual_exit:
 				newfile.write(';;;; exit %u\n' % (actual_exit))
