@@ -73,6 +73,31 @@ static void uop_print(struct bsp_ec *ec, struct bsp_vm *vm, const char *msg, siz
 	vm->cb->print(ec, vm, msg, length);
 }
 
+static void uop_jump(struct bsp_ec *ec, struct bsp_vm *vm, uint32_t addr) {
+	if (addr > vm->ps->limit)
+		bsp_die(ec, "control flow escapes beyond BSP space: 0x%x > 0x%x", addr, vm->ps->limit);
+	vm->pc_next = addr;
+}
+
+static void uop_call(struct bsp_ec *ec, struct bsp_vm *vm, uint32_t addr) {
+	bsp_stk_push(ec, vm, vm->pc_next);
+	uop_jump(ec, vm, addr);
+}
+
+static void uop_exit(struct bsp_ec *ec, struct bsp_vm *vm, uint32_t exit_code) {
+	vm->exit_code = exit_code;
+	bsp_return(ec, BSP_RET_EXIT);
+}
+
+static void uop_quasireturn(struct bsp_ec *ec, struct bsp_vm *vm) {
+	if (bsp_stk_getsize(vm) == 0) {
+		uop_exit(ec, vm, 0);
+	}
+	uop_jump(ec, vm, bsp_stk_pop(ec, vm));
+}
+
+#define uop_quasireturn1(ec, vm, _) uop_quasireturn(ec, vm)
+
 /* bufstring address */
 OPFUNC(op_bufstring) {
 	size_t len;
@@ -152,8 +177,7 @@ OPFUNC(op_nop) {
 
 /* exit any */
 OPFUNC(op_exit) {
-	vm->exit_code = src[0];
-	bsp_return(ec, BSP_RET_EXIT);
+	uop_exit(ec, vm, src[0]);
 }
 
 /* jumptable #reg */
@@ -165,56 +189,45 @@ OPFUNC(op_jumptable) {
 	if (vm->pc_next + offs < offs)
 		bsp_die(ec, "jump table index overflow");
 	offs += vm->pc_next;
-	vm->pc_next = get_le32(bsp_ps_getp(ec, vm->ps, offs, 4));
+	uop_jump(ec, vm, get_le32(bsp_ps_getp(ec, vm->ps, offs, 4)));
 }
 
 /* return */
 OPFUNC(op_return) {
-	if (bsp_stk_getsize(vm) == 0) {
-		vm->exit_code = 0;
-		bsp_return(ec, BSP_RET_EXIT);
-	}
-
-	uint32_t pc_next = bsp_stk_pop(ec, vm);
-	(void) bsp_ps_getp(ec, vm->ps, pc_next, 1);
-	vm->pc_next = pc_next;
+	uop_quasireturn(ec, vm);
 }
 
 /* call addr_code */
 OPFUNC(op_call) {
-	bsp_stk_push(ec, vm, vm->pc_next);
-	(void) bsp_ps_getp(ec, vm->ps, src[0], 1);
-	vm->pc_next = src[0];
+	uop_call(ec, vm, src[0]);
 }
 
 /* jump addr_code */
 OPFUNC(op_jump) {
-	(void) bsp_ps_getp(ec, vm->ps, src[0], 1);
-	vm->pc_next = src[0];
+	uop_jump(ec, vm, src[0]);
 }
 
 /* <op>n?z #reg, addr */
-#define OP_CONDFLOW(func, pred, target) \
+#define OP_CONDFLOW(func, pred, uop) \
 	OPFUNC(func) { \
 		if (!(src[0] pred)) \
 			return; \
-		return target(ec, vm, src + 1, dst); \
+		uop(ec, vm, src[1]); \
 	}
 
-OP_CONDFLOW(op_jumpz , == 0, op_jump)
-OP_CONDFLOW(op_jumpnz, != 0, op_jump)
-OP_CONDFLOW(op_callz , == 0, op_call)
-OP_CONDFLOW(op_callnz, != 0, op_call)
-OP_CONDFLOW(op_retz  , == 0, op_return)
-OP_CONDFLOW(op_retnz , != 0, op_return)
+OP_CONDFLOW(op_jumpz , == 0, uop_jump)
+OP_CONDFLOW(op_jumpnz, != 0, uop_jump)
+OP_CONDFLOW(op_callz , == 0, uop_call)
+OP_CONDFLOW(op_callnz, != 0, uop_call)
+OP_CONDFLOW(op_retz  , == 0, uop_quasireturn1)
+OP_CONDFLOW(op_retnz , != 0, uop_quasireturn1)
 
 /* if<cond> #reg, any, addr */
 #define OP_CONDJUMP(func, op) \
 	OPFUNC(func) { \
 		if (!(src[0] op src[1])) \
 			return; \
-		(void) bsp_ps_getp(ec, vm->ps, src[2], 1); \
-		vm->pc_next = src[2]; \
+		uop_jump(ec, vm, src[2]); \
 	}
 
 OP_CONDJUMP(op_ifeq, ==)
