@@ -23,7 +23,7 @@
 		uint32_t *dst[] __attribute__((unused)) \
 	)
 
-static void validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
+static void uop_validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
 	const uint8_t *fin = (const uint8_t *)data + len;
 	const uint8_t *p = (const uint8_t *)data;
 
@@ -67,7 +67,7 @@ static void validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
 	}
 }
 
-static void bsp_msg_print(struct bsp_ec *ec, struct bsp_vm *vm, const char *msg, size_t length) {
+static void uop_print(struct bsp_ec *ec, struct bsp_vm *vm, const char *msg, size_t length) {
 	if (vm->cb == NULL || vm->cb->print == NULL)
 		return;
 	vm->cb->print(ec, vm, msg, length);
@@ -78,7 +78,7 @@ OPFUNC(op_bufstring) {
 	size_t len;
 	const char *data = (const char *)bsp_ps_getsz(ec, vm->ps, src[0], &len);
 
-	validate_utf8(ec, data, len);
+	uop_validate_utf8(ec, data, len);
 	bsp_buf_push(ec, vm, data, len);
 }
 
@@ -127,7 +127,7 @@ OPFUNC(op_bufchar) {
 
 /* printbuf */
 OPFUNC(op_printbuf) {
-	bsp_msg_print(ec, vm, vm->_buf, vm->_buf_used);
+	uop_print(ec, vm, vm->_buf, vm->_buf_used);
 	bsp_buf_clear(ec, vm);
 }
 
@@ -141,8 +141,8 @@ OPFUNC(op_print) {
 	size_t len;
 	const char *data = bsp_ps_getsz(ec, vm->ps, src[0], &len);
 
-	validate_utf8(ec, data, len);
-	bsp_msg_print(ec, vm, data, len);
+	uop_validate_utf8(ec, data, len);
+	uop_print(ec, vm, data, len);
 }
 
 /* nop */
@@ -640,7 +640,7 @@ OPFUNC(op_menu) {
 			break;
 		size_t len;
 		const char *item = bsp_ps_getsz(ec, vm->ps, off, &len);
-		validate_utf8(ec, item, len);
+		uop_validate_utf8(ec, item, len);
 		strtab_off += 4;
 		count++;
 	}
