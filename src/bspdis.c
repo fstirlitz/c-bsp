@@ -568,6 +568,10 @@ static void dis_analyse(void) {
 					continue;
 
 				switch (BSP_OPSEM_AT(sems, i)) {
+				case BSP_OPSEM_DIVISOR:
+					if (opc.opval[i] == 0)
+						fl |= BSP_OPFLAG_STOPS_FLOW;
+					break;
 				case BSP_OPSEM_USV:
 					if (opc.opval[i] > 0x10ffff)
 						fl |= BSP_OPFLAG_STOPS_FLOW;

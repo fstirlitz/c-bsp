@@ -14,6 +14,7 @@ typedef enum {
 	BSP_OPSEM_POS               = 0x07,   // position
 	BSP_OPSEM_USV               = 0x08,   // Unicode scalar value
 	BSP_OPSEM_SHIFT             = 0x09,   // shift/rotate count
+	BSP_OPSEM_DIVISOR           = 0x0a,   // divisor
 
 	BSP_OPSEM_PTR_DATA          = 0x10,   // address of not-otherwise-specified data
 	BSP_OPSEM_PTR_DATA8         = 0x11,   // address of a byte
