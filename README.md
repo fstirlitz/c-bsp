@@ -47,14 +47,4 @@ Notes on implementation:
   the system encoding will instead lossily convert it. Both behaviours may
   change in a future version.
 
-## TODO
-
-- An interactive debugger.
-- A graphical interface.
-- A better test suite.
-- Rewrite It In Rust™.
-- Batch/non-interactive mode?
-- Interactive disassembler?
-- Symbolic control flow analysis?
-
 [spec]: https://github.com/aaaaaa123456789/bsp/blob/92d13c851899eeb06d26ce346ee4f6ab46123ee7/specification.md
