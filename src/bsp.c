@@ -813,6 +813,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	patch_load();
+	if (patch_space.space == NULL) {
+		fprintf(stderr, "%s: %s: patch file is empty\n", argv0, patch_fname);
+		exit(-1);
+	}
 
 	struct bsp_io io;
 	scratch_clone();

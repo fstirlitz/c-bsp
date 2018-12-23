@@ -64,8 +64,6 @@ for line in testfile:
 			in_choices.append(int(param.strip(), 0))
 		elif sect == 'fatal':
 			expect_exit = None
-		elif sect == 'skipdis':
-			test_dis = False
 		elif sect == 'exit':
 			expect_exit = int(param.strip(), 0)
 		else:

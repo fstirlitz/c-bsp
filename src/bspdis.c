@@ -530,6 +530,11 @@ static void parse_cmdline(char *argv[]) {
 static void dis_analyse(void) {
 	struct bsp_ec ec;
 
+	if (patch_space.space == NULL) {
+		dis_diag(0, "patch file is empty");
+		return;
+	}
+
 	while (!q_empty(&labels)) {
 		uint32_t ip = q_shift(&labels);
 
@@ -654,6 +659,9 @@ static void dis_analyse(void) {
 #include "hexdump.c"
 
 static void dis_print(FILE *outf) {
+	if (patch_space.space == NULL)
+		return;
+
 	for (uint32_t offset = 0; offset <= patch_space.limit && (offset + 1); ) {
 		cls_t cls = cls_get(offset);
 

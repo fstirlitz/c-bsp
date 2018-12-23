@@ -118,8 +118,9 @@ static void patch_load(void) {
 	return;
 
 empty_err:
-	fprintf(stderr, "%s: %s: patch file is empty\n", argv0, patch_fname);
-	exit(-1);
+	patch_space.space = NULL;
+	patch_space.limit = 0;
+	return;
 
 too_large_err:
 	fprintf(stderr, "%s: %s: patch file is too large\n", argv0, patch_fname);
