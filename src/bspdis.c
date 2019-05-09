@@ -199,13 +199,30 @@ static void dis_diag(uint32_t off, const char *fmt, ...) {
 	had_diag = true;
 }
 
-static bool dis_check_unmarked(uint32_t from, uint32_t addr, uint32_t length, const char *prefix) {
+static bool cls_compatible(cls_t curr, cls_t want) {
+	curr &= ~CLS_LABELLED;
+	want &= ~CLS_LABELLED;
+
+	if (curr == CLS_UNKNOWN)
+		return true;
+	if (curr == want)
+		return true;
+	if ((curr & ~CLS_CONTINUE) == (want & ~CLS_CONTINUE))
+		if ((curr & ~CLS_CONTINUE) == CLS_STRING)
+			return true;
+
+	return false;
+}
+
+static bool dis_check_unmarked(uint32_t from, uint32_t addr, uint32_t length, const char *prefix, cls_t wanted) {
 	while (length--) {
 		cls_t cls = cls_get(addr);
-		if (cls & ~CLS_LABELLED) {
+
+		if (!cls_compatible(cls, wanted)) {
 			dis_diag(from, "%s: 0x%x is already marked as %s", prefix, addr, cls_name(cls));
 			return false;
 		}
+		wanted |= CLS_CONTINUE;
 		addr++;
 	}
 
@@ -221,7 +238,7 @@ static void dis_mark_data(uint32_t from, uint32_t addr, uint32_t length, cls_t c
 	if (!length)
 		return;
 
-	if (!dis_check_unmarked(from, addr, length, "bad data reference"))
+	if (!dis_check_unmarked(from, addr, length, "bad data reference", cls_start))
 		return;
 
 	cls_set(addr, cls_start);
@@ -245,7 +262,7 @@ static void dis_mark_string(uint32_t from, uint32_t addr) {
 		}
 	}
 
-	if (!dis_check_unmarked(from, addr, end - addr + 1, ""))
+	if (!dis_check_unmarked(from, addr, end - addr + 1, "bad string reference", CLS_STRING))
 		return;
 	cls_set_range(addr, end - addr + 1, CLS_STRING);
 }
@@ -285,14 +302,10 @@ static void dis_queue_block(uint32_t from, uint32_t addr) {
 		dis_diag(from, "bad control flow into a %s at 0x%x", cls_name(cls), addr);
 		return;
 	case CLS_OPCODE:
-	case CLS_UNKNOWN:
-		/* OK */;
-	}
-
-	if (cls & CLS_LABELLED)
 		return;
-
-	q_push(&labels, addr);
+	case CLS_UNKNOWN:
+		q_push(&labels, addr);
+	}
 }
 
 static void dis_mark_ips(uint32_t from, uint32_t addr) {
