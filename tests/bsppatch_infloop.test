@@ -3,3 +3,4 @@
 end:
 	exit #0
 ;;;; fatal
+;;;; diswarn ignore

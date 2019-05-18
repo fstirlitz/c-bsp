@@ -34,6 +34,7 @@ in_data_at   = 0
 in_choices   = []
 expect_msg   = []
 expect_data  = in_data
+expect_diswarn = False
 expect_exit  = 0
 test_dis     = not args.reference
 test_skipout = False
@@ -64,6 +65,11 @@ for line in testfile:
 			in_choices.append(int(param.strip(), 0))
 		elif sect == 'fatal':
 			expect_exit = None
+		elif sect == 'diswarn':
+			if param == 'ignore':
+				expect_diswarn = None
+			else:
+				expect_diswarn = True
 		elif sect == 'exit':
 			expect_exit = int(param.strip(), 0)
 		else:
@@ -122,9 +128,22 @@ if test_dis:
 		stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
 	(_, dis_err) = disassembler.communicate(timeout=10)
-	if args.verbose and dis_err:
-		print("=== Disassembler error ===")
-		print(dis_err.decode('utf-8', 'surrogateescape'))
+
+	if dis_err != b'':
+		if expect_diswarn:
+			if args.verbose:
+				print("=== Expected disassembler warnings emitted ===")
+		elif expect_diswarn is None:
+			if args.verbose:
+				print("=== Disassembler warnings (ignored) ===")
+		else:
+			print("=== Unexpected disassembler warnings ===")
+			discrepancy = True
+		if args.verbose or discrepancy:
+			print(dis_err.decode('utf-8', 'surrogateescape'))
+	elif expect_diswarn:
+		print("=== Expected disassembler warnings not emitted ===")
+		discrepancy = True
 
 	if args.verbose:
 		print("=== Disassembly ===")
