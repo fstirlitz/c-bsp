@@ -19,6 +19,7 @@
 #include "lib/dis.h"
 #include "lib/stk.h"
 #include "lib/io.h"
+#include "lib/util.h"
 
 #define INSN_LIMIT_DEFAULT 0x8000000
 #define BRBK_LIMIT_DEFAULT 0x8000000
@@ -304,6 +305,9 @@ static void exec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode *opc
 	}
 }
 
+static uint32_t pc_log[32];
+static size_t pc_log_used = 0;
+
 static void postexec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode *opc) {
 	if (debug_flags & DBG_TRACE) {
 		if (debug_flags & DBG_TRACE_OPERANDS) {
@@ -312,10 +316,18 @@ static void postexec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode 
 		}
 	}
 
-	if (vm->pc_next == vm->pc) {
-		bsp_opflags_t flags = bsp_op_get_flags(opc);
-		if (flags & BSP_OPFLAG_TIGHT_LOOP)
-			bsp_die(ec, "tight infinite loop detected");
+	bsp_opflags_t flags = bsp_op_get_flags(opc);
+	if (flags & BSP_OPFLAG_TIGHT_LOOP) {
+		if (pc_log_used < COUNT(pc_log)) {
+			pc_log[pc_log_used++] = vm->pc;
+		}
+	} else {
+		pc_log_used = 0;
+	}
+
+	for (int i = 0; i < pc_log_used; ++i) {
+		if (vm->pc_next == pc_log[i])
+			bsp_die(ec, "infinite loop detected");
 	}
 
 	if (vm->pc_next <= vm->pc) {
