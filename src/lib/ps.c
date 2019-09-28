@@ -90,12 +90,15 @@ size_t bsp_ps_fetchop(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t pc, s
 		bsp_die(ec, "undefined opcode 0x%02x", opc->opcode);
 
 	case BSP_OPDS_SHIFT: {
+		uint_fast8_t specoff = pc - pc0;
 		uint_fast8_t spec = fetch_op8(ec, ps, &pc);
 
+		opc->opoff[opind] = pc - pc0;
 		opc->optyp[opind] = BSP_OPD_MREG;
 		opc->opval[opind] = fetch_op8(ec, ps, &pc);
 		opind++;
 
+		opc->opoff[opind] = pc - pc0;
 		if (spec & BSP_SHIFT_REG) {
 			opc->optyp[opind] = BSP_OPD_RREG;
 			opc->opval[opind] = fetch_op8(ec, ps, &pc);
@@ -106,14 +109,17 @@ size_t bsp_ps_fetchop(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t pc, s
 		opind++;
 
 		if (spec & BSP_SHIFT_MASK_COUNT) {
+			opc->opoff[opind] = specoff;
 			opc->optyp[opind] = BSP_OPD_IMM8;
 			opc->opval[opind] = spec & BSP_SHIFT_MASK_COUNT;
 		} else {
+			opc->opoff[opind] = pc - pc0;
 			opc->optyp[opind] = BSP_OPD_RREG;
 			opc->opval[opind] = fetch_op8(ec, ps, &pc);
 		}
 		opind++;
 
+		opc->opoff[opind] = specoff;
 		opc->optyp[opind] = BSP_OPD_NONE; // hide it from disassembly
 		opc->opval[opind] = spec & BSP_SHIFT_MASK_TYPE;
 
@@ -124,19 +130,24 @@ size_t bsp_ps_fetchop(struct bsp_ec *ec, const struct bsp_ps *ps, uint32_t pc, s
 		for (opind = 0; opind < BSP_OPNUM; opind++) {
 			switch (opc->optyp[opind] = BSP_OPD_AT(optypes, opind)) {
 			case BSP_OPD_NONE:
+				opc->opoff[opind] = 0;
 				break;
 			case BSP_OPD_IMM8:
+				opc->opoff[opind] = pc - pc0;
 				opc->opval[opind] = fetch_op8(ec, ps, &pc);
 				break;
 			case BSP_OPD_IMM16:
+				opc->opoff[opind] = pc - pc0;
 				opc->opval[opind] = fetch_op16(ec, ps, &pc);
 				break;
 			case BSP_OPD_IMM32:
+				opc->opoff[opind] = pc - pc0;
 				opc->opval[opind] = fetch_op32(ec, ps, &pc);
 				break;
 			case BSP_OPD_RREG:
 			case BSP_OPD_MREG:
 			case BSP_OPD_WREG:
+				opc->opoff[opind] = pc - pc0;
 				opc->opval[opind] = fetch_op8(ec, ps, &pc);
 				break;
 			default:

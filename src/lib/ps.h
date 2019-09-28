@@ -30,6 +30,7 @@ typedef enum {
 struct bsp_opcode {
 	uint32_t      opval[BSP_OPNUM];
 	bsp_optype_t  optyp[BSP_OPNUM];
+	uint8_t       opoff[BSP_OPNUM];
 	uint8_t       opcode;
 };
 
