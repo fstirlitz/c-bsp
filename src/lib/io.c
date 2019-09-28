@@ -9,7 +9,7 @@
 #include <sys/types.h>
 
 inline static noreturn void bsp_die_perror(struct bsp_ec *ec, struct bsp_io *io, const char *func) {
-	bsp_die(ec, "%s: %s: %s", io->fname, func, strerror(errno));
+	bsp_die(ec, "%s: %s: %s [%d]", io->fname, func, strerror(errno), errno);
 }
 
 void bsp_io_init(struct bsp_io *io, int fd, const char *fname) {
