@@ -1,3 +1,3 @@
 	call 0
 	exit 0
-;;;; fatal
+;;;; exit fatal

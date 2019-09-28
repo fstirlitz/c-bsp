@@ -9,5 +9,5 @@ menu:
 .one:
 	hexdata 42
 ;;;; choose 0
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn

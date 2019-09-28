@@ -1,3 +1,3 @@
 	bufchar 0x110000
 	exit 0
-;;;; fatal
+;;;; exit fatal

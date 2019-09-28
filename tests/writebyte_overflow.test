@@ -4,4 +4,4 @@
 ;;;; data-at 0xfffffffc
 ;;;; data
 00 00 00 00
-;;;; fatal
+;;;; exit fatal

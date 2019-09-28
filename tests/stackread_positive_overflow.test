@@ -8,4 +8,4 @@
 	push 8
 	stackread #0, 10
 	exit #0
-;;;; fatal
+;;;; exit fatal

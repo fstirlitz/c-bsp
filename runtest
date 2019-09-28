@@ -63,15 +63,17 @@ for line in testfile:
 			mode = 'comment'
 		elif sect == 'choose':
 			in_choices.append(int(param.strip(), 0))
-		elif sect == 'fatal':
-			expect_exit = None
 		elif sect == 'diswarn':
 			if param == 'ignore':
 				expect_diswarn = None
 			else:
 				expect_diswarn = True
 		elif sect == 'exit':
-			expect_exit = int(param.strip(), 0)
+			param = param.strip()
+			if param == 'fatal':
+				expect_exit = None
+			else:
+				expect_exit = int(param.strip(), 0)
 		else:
 			print("=== Invalid section: {} ===".format(repr(line)))
 			sys.exit(1)
@@ -314,7 +316,7 @@ if discrepancy or args.verbose:
 		else:
 			print("=== Expected fatal error raised ===")
 
-_OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit', 'fatal'))
+_OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit'))
 
 if discrepancy:
 	if args.update:
@@ -335,7 +337,7 @@ if discrepancy:
 				newfile.write(';;;; target\n')
 				newfile.write(actual_data.hex() + '\n')
 			if actual_exit is None:
-				newfile.write(';;;; fatal\n')
+				newfile.write(';;;; exit fatal\n')
 			elif actual_exit:
 				newfile.write(';;;; exit %u\n' % (actual_exit))
 		newname.replace(args.testfile)

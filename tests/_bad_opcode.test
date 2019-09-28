@@ -1,4 +1,4 @@
 	db 0xff
 	exit 0
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn

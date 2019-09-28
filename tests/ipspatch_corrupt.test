@@ -2,5 +2,5 @@
 	exit #0
 patch:
 	db "PATCH"
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn

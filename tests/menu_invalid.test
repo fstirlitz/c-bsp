@@ -6,4 +6,4 @@ menu:
 bad_utf8:
 	db 0xff, 0x80, 0
 ;;;; choose 0
-;;;; fatal
+;;;; exit fatal

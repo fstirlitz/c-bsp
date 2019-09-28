@@ -726,4 +726,4 @@ item:
 358. item
 359. item
 [0..359, q to abort]? 
-;;;; fatal
+;;;; exit fatal

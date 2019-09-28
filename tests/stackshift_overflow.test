@@ -1,4 +1,4 @@
 	setstacksize 10
 	stackshift -50
 	exit #0
-;;;; fatal
+;;;; exit fatal

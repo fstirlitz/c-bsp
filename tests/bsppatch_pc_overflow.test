@@ -5,4 +5,4 @@ child:
 	nop
 child_end:
 	exit 0
-;;;; fatal
+;;;; exit fatal

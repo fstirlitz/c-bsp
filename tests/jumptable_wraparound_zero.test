@@ -4,4 +4,4 @@
 
 .exit
 	exit 0
-;;;; fatal
+;;;; exit fatal

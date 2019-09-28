@@ -1,4 +1,4 @@
 	jump 0xfedcba98
 	exit #0
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn

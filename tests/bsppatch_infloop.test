@@ -2,5 +2,5 @@
 	exit 0
 end:
 	exit #0
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn ignore

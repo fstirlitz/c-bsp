@@ -3,5 +3,5 @@
 patch:
 	db "PATCL"
 	db "EOF"
-;;;; fatal
+;;;; exit fatal
 ;;;; diswarn
