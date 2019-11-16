@@ -1,4 +1,8 @@
-#ifndef __GLIBC__
+#if defined(__GLIBC__) || defined(__BIONIC__)
+#	define HAVE_ASPRINTF 1
+#endif
+
+#if !defined(HAVE_ASPRINTF)
 static int vasprintf(char **strp, const char *fmt, va_list ap) {
 	int sz;
 	va_list aq;
