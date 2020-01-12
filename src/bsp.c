@@ -398,7 +398,7 @@ static void print_utf8(const char *msg, size_t length) {
 
 	if (iconv_cd != (iconv_t)-1) {
 		bufp = buffer; bufl = sizeof(buffer);
-		iconv(iconv_cd, NULL, 0, &bufp, &bufl);
+		iconv(iconv_cd, NULL, NULL, &bufp, &bufl);
 		fwrite(buffer, bufp - buffer, 1, stdout);
 	}
 }
