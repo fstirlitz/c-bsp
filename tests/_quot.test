@@ -1,0 +1,4 @@
+	bufstring s
+	exit 0
+s:
+	db 34, 0
