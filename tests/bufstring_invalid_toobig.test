@@ -1,0 +1,6 @@
+	bufstring bad_utf8
+	clearbuf
+	exit 0
+bad_utf8:
+	db 0xf4, 0xbf, 0xbf, 0xbf, 0
+;;;; exit fatal
