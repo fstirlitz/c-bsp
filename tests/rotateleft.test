@@ -1,3 +1,6 @@
+	rotateleft #0, 0xdeadface, #2
+	ifne #0, 0xdeadface, bad
+
 	rotateleft #0, 0xdeadface, 8
 	ifne #0, 0xadfacede, bad
 
