@@ -318,30 +318,47 @@ if discrepancy or args.verbose:
 		else:
 			print("=== Expected fatal error raised ===")
 
-_OUTPUT_SECTIONS = frozenset(('output', 'target', 'exit'))
+_OUTPUT_SECTIONS = ('output', 'target', 'exit')
 
 if discrepancy:
 	if args.update:
 		import os
 		newname = args.testfile.with_suffix('.newtest')
+		emitted = set()
+
+		def emit(sect):
+			if sect in emitted:
+				return
+			emitted.add(sect)
+
+			if sect == 'output':
+				if actual_msg:
+					newfile.write(';;;; output\n')
+					newfile.write(actual_msg)
+			elif sect == 'target':
+				if actual_data is not None and actual_data != in_data:
+					newfile.write(';;;; target\n')
+					newfile.write(actual_data.hex() + '\n')
+			elif sect == 'exit':
+				if actual_exit is None:
+					newfile.write(';;;; exit fatal\n')
+				elif actual_exit:
+					newfile.write(';;;; exit %u\n' % (actual_exit))
+
 		with args.testfile.open('rt') as testfile, newname.open('wt') as newfile:
 			skip = False
 			for line in testfile:
 				if line.startswith(';;;;'):
 					sect, _, param = line[len(';;;;'):].strip().partition(' ')
 					skip = sect in _OUTPUT_SECTIONS
+					if skip:
+						emit(sect)
 				if not skip:
 					newfile.write(line)
-			if actual_msg:
-				newfile.write(';;;; output\n')
-				newfile.write(actual_msg)
-			if actual_data != in_data:
-				newfile.write(';;;; target\n')
-				newfile.write(actual_data.hex() + '\n')
-			if actual_exit is None:
-				newfile.write(';;;; exit fatal\n')
-			elif actual_exit:
-				newfile.write(';;;; exit %u\n' % (actual_exit))
+
+			for sect in _OUTPUT_SECTIONS:
+				emit(sect)
+
 		newname.replace(args.testfile)
 
 	sys.exit(1)
