@@ -294,8 +294,6 @@ OPFUNC(op_longmulacum) {
 
 OPFUNC(op_bit_shift) {
 	size_t count = src[1] & 0x1f;
-	if (count == 0)
-		return;
 
 	switch (src[2]) {
 	case BSP_SHIFT_SHL:
