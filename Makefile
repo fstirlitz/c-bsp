@@ -48,6 +48,7 @@ bsp bspdis:
 include install.mak
 include deps.mak
 include tests.mak
+include cppcheck.mak
 
 deps.mak:
 	( for f in src/*.c src/lib/*.c; do gcc -E -DMAKEDEPS=1 -I. -MM "$$f" -MT "$${f%.c}.o" $(CPPFLAGS) ; done ) > '$@'
