@@ -30,7 +30,7 @@ static void patch_load(void) {
 
 		length = 0;
 		size_t capacity = 0x8000;
-		void *buf = malloc(capacity);
+		char *buf = malloc(capacity);
 		char *bufp = buf;
 
 		for (;;) {
@@ -69,7 +69,7 @@ static void patch_load(void) {
 		if (!length)
 			goto empty_err;
 
-		patch_space.space = buf;
+		patch_space.space = (void *)buf;
 		patch_space.limit = length - 1;
 
 		return;
