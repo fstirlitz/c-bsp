@@ -267,6 +267,10 @@ static void dis_mark_string(uint32_t from, uint32_t addr) {
 	cls_set_range(addr, end - addr + 1, CLS_STRING);
 }
 
+static void dis_mark_ptr(uint32_t from, uint32_t addr) {
+	dis_mark_data(from, addr, 4, CLS_PTR);
+}
+
 static void dis_mark_menu(uint32_t from, uint32_t addr) {
 	for (;;) {
 		if (addr + 3 < addr || addr + 3 > patch_space.limit) {
@@ -280,7 +284,7 @@ static void dis_mark_menu(uint32_t from, uint32_t addr) {
 			break;
 		}
 
-		dis_mark_data(from, addr, 4, CLS_PTR);
+		dis_mark_ptr(from, addr);
 		dis_mark_string(addr, saddr);
 		dis_put_label(saddr);
 		addr += 4;
@@ -371,7 +375,7 @@ static void dis_jumptab_grab(void) {
 		case CLS_UNKNOWN:
 		case CLS_DATA:
 		case CLS_PTR:
-			dis_mark_data(addr, addr, 4, CLS_PTR);
+			dis_mark_ptr(addr, addr);
 		}
 
 		uint32_t target = get_le32(patch_space.space + addr);
@@ -470,7 +474,7 @@ static void parse_cmdline(char *argv[]) {
 					fprintf(stderr, "%s: hinted pointer 0x%lx is too high\n", argv0, addr);
 					exit(-1);
 				}
-				dis_mark_data(from, addr, 4, CLS_PTR);
+				dis_mark_ptr(from, addr);
 				if (label)
 					dis_put_label(addr);
 				from = addr;
