@@ -59,6 +59,7 @@ static void show_usage(void) {
 		"  menu             Menu, i.e. a list of pointers to zero-terminated\n"
 		"                   strings.\n"
 		"  sha1             SHA-1 hash.\n"
+		"  ips              IPS patch.\n"
 		"  sz               Null-terminated UTF-8 string, displayed\n"
 		"                   as a string pseudo-instruction.\n"
 		"  +$N              $N bytes of raw data, displayed as a hexdata\n"
@@ -403,7 +404,7 @@ static void dis_load(const char *fname) {
 }
 
 static const char *hint_tags[] = {
-	"sz", "sha1", "dh", "dw", "menu", "code", "?", "", NULL
+	"sz", "sha1", "dh", "dw", "menu", "code", "ips", "?", "", NULL
 };
 
 static const char *output_fname = NULL;
@@ -518,10 +519,13 @@ static void parse_cmdline(char *argv[]) {
 				dis_mark_menu(DIS_ADDR_HINT, addr);
 				break;
 			case 5:
-			case 7:
+			case 8:
 				q_push(&labels, addr);
 				break;
 			case 6:
+				dis_mark_ips(DIS_ADDR_HINT, addr);
+				break;
+			case 7:
 				break;
 			default:
 				goto bad_hint;
