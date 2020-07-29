@@ -304,7 +304,7 @@ static void dis_queue_block(uint32_t from, uint32_t addr) {
 
 	switch (cls & ~CLS_LABELLED) {
 	default:
-		dis_diag(from, "bad control flow into a %s at 0x%x", cls_name(cls), addr);
+		dis_diag(from, "bad control flow into %s at 0x%x", cls_name(cls), addr);
 		return;
 	case CLS_OPCODE:
 		return;
@@ -565,7 +565,7 @@ static void dis_analyse(void) {
 			cls_t cls = cls_get(ip);
 			if ((cls & ~CLS_LABELLED) != CLS_UNKNOWN) {
 				if ((cls & ~CLS_LABELLED) != CLS_OPCODE)
-					dis_diag(ip, "bad control flow into a %s", cls_name(cls));
+					dis_diag(ip, "bad control flow into %s", cls_name(cls));
 				break;
 			}
 
@@ -574,7 +574,7 @@ static void dis_analyse(void) {
 			for (size_t i = 0; i < sz; ++i) {
 				cls_t vcls = cls_get(ip + i);
 				if ((vcls & ~CLS_LABELLED) != CLS_UNKNOWN) {
-					dis_diag(ip, "operand spills over into a %s", cls_name(vcls));
+					dis_diag(ip, "operand spills over into %s", cls_name(vcls));
 					goto next_label;
 				}
 			}
