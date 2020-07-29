@@ -1,0 +1,4 @@
+	getword #0, 1
+	exit #0
+;;;; exit 0x100
+;;;; diswarn

@@ -1,0 +1,11 @@
+	menu #1, 7
+	exit 0x10
+	dw -1
+	align 0x10
+	string "haha, overlapping operand go brrrr"
+;;;; diswarn
+;;;; choose 0
+;;;; output
+0. haha, overlapping operand go brrrr
+[0..0, q to abort]? 
+;;;; exit 16
