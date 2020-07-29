@@ -142,6 +142,8 @@ inline static void cls_set_range(uint32_t offset, uint32_t len, cls_t cls) {
 }
 
 inline static void dis_put_label(uint32_t addr) {
+	if (cls_get(addr) & CLS_CONTINUE)
+		return;
 	cls_set(addr, cls_get(addr) | CLS_LABELLED);
 }
 
