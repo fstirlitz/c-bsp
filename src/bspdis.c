@@ -90,18 +90,6 @@ typedef enum {
 	CLS_IPS          = 0x08,
 } cls_t;
 
-static const char *cls_label_prefix[0x0f] = {
-	"unk",
-	"label",
-	"str",
-	"data",
-	"byte",
-	"word",
-	"half",
-	"ptr",
-	"ips",
-};
-
 typedef uint64_t clsword_t;
 
 #define BITS_PER_CLS 6
@@ -679,6 +667,28 @@ static void dis_analyse(void) {
 	q_free(&labels);
 }
 
+static void fput_addr(FILE *outf, uint32_t offset) {
+	static const char *cls_label_prefix[0x0f] = {
+		"unk",
+		"label",
+		"str",
+		"data",
+		"byte",
+		"word",
+		"half",
+		"ptr",
+		"ips",
+	};
+
+	cls_t cls = cls_get(offset);
+
+	if (cls & CLS_LABELLED) {
+		fprintf(outf, "%s_%08x", cls_label_prefix[cls & ~CLS_LABELLED], offset);
+	} else {
+		fprintf(outf, "0x%08x", offset);
+	}
+}
+
 #include "hexdump.c"
 
 static void dis_print(FILE *outf) {
@@ -689,10 +699,8 @@ static void dis_print(FILE *outf) {
 		cls_t cls = cls_get(offset);
 
 		if (cls & CLS_LABELLED) {
-			fprintf(outf, "%s_%08x:\n",
-				cls_label_prefix[cls & ~CLS_LABELLED],
-				offset
-			);
+			fput_addr(outf, offset);
+			fprintf(outf, ":\n");
 		}
 
 		if (dump_opcodes)
@@ -757,12 +765,8 @@ static void dis_print(FILE *outf) {
 				case BSP_OPSEM_PTR_DATA32:
 				case BSP_OPSEM_PTR_BSP:
 				case BSP_OPSEM_PTR_MENU: {
-					cls_t cls = cls_get(opc.opval[i]);
-					if (cls & CLS_LABELLED) {
-						fprintf(outf, "%s_%08x", cls_label_prefix[cls & ~CLS_LABELLED], opc.opval[i]);
-						break;
-					}
-					/* fallthrough */
+					fput_addr(outf, opc.opval[i]);
+					break;
 				}
 				default:
 					fprintf(outf, "0x%08x", opc.opval[i]);
@@ -804,12 +808,7 @@ static void dis_print(FILE *outf) {
 			offset += 4;
 
 			fprintf(outf, "%-18s ", "dw");
-			cls_t cls = cls_get(value);
-			if (cls & CLS_LABELLED) {
-				fprintf(outf, "%s_%08x", cls_label_prefix[cls & ~CLS_LABELLED], value);
-			} else {
-				fprintf(outf, "0x%08x", value);
-			}
+			fput_addr(outf, value);
 			fprintf(outf, "\n");
 			break;
 		}
