@@ -391,30 +391,30 @@ OPFUNC(op_getvariable) {
 /* get<size> #dst, addr */
 /* get<size>(inc|dec) #dst, #addr */
 
-#define OP_MOVM(func, b, n) \
+#define OP_MOVM(func, b) \
 	OPFUNC(func) { \
-		*dst[0]  = get_le ## b(bsp_ps_getp(ec, vm->ps, src[0], n)); \
+		*dst[0]  = get_le ## b(bsp_ps_getp(ec, vm->ps, src[0], b / 8)); \
 	}
 
-#define OP_MOVS(func, b, n) \
+#define OP_MOVS(func, b, sign) \
 	OPFUNC(func) { \
 		*dst[0] = get_le ## b(bsp_ps_getp(ec, vm->ps, *dst[1], b / 8)); \
 		if (dst[0] == dst[1]) \
 			return; \
-		*dst[1] += n; \
+		*dst[1] += sign (b / 8); \
 	}
 
-OP_MOVM(op_getbyte       , 8,  1)
-OP_MOVS(op_getbyteinc    , 8, +1)
-OP_MOVS(op_getbytedec    , 8, -1)
+OP_MOVM(op_getbyte       , 8)
+OP_MOVS(op_getbyteinc    , 8, +)
+OP_MOVS(op_getbytedec    , 8, -)
 
-OP_MOVM(op_gethalfword   , 16,  2)
-OP_MOVS(op_gethalfwordinc, 16, +2)
-OP_MOVS(op_gethalfworddec, 16, -2)
+OP_MOVM(op_gethalfword   , 16)
+OP_MOVS(op_gethalfwordinc, 16, +)
+OP_MOVS(op_gethalfworddec, 16, -)
 
-OP_MOVM(op_getword       , 32,  4)
-OP_MOVS(op_getwordinc    , 32, +4)
-OP_MOVS(op_getworddec    , 32, -4)
+OP_MOVM(op_getword       , 32)
+OP_MOVS(op_getwordinc    , 32, +)
+OP_MOVS(op_getworddec    , 32, -)
 
 /* length #reg */
 OPFUNC(op_length) {
