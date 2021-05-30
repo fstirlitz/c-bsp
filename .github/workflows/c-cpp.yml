@@ -15,8 +15,6 @@ jobs:
     - uses: actions/checkout@v2
     - name: install Python
       run: sudo apt-get update -qq && sudo apt-get install -qq python3
-    - name: configure
-      run: ./configure
     - name: make
       run: make all CFLAGS='-ftest-coverage -fprofile-arcs -Wall' LDFLAGS='-ftest-coverage -fprofile-arcs' CC='gcc -std=gnu11'
     - name: make bspcomp
