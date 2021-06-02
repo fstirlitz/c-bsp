@@ -38,7 +38,7 @@ typedef uint_fast32_t bsp_opsems_t;
 #define BSP_OPFLAG_CALL           0x08   // instruction may redirect control flow, but is expected to return later
 #define BSP_OPFLAG_RDPOS          0x10   // reads file position
 #define BSP_OPFLAG_WRPOS          0x20   // may modify file position
-#define BSP_OPFLAG_TIGHT_LOOP     0x40   // this instruction may redirect control flow, but does not modify state
+#define BSP_OPFLAG_STATIONARY     0x40   // this instruction does not modify state inspected by conditional jump instructions
 
 typedef uint_fast8_t bsp_opflags_t;
 
