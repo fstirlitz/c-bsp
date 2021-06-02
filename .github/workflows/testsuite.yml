@@ -17,9 +17,13 @@ jobs:
         submodules: recursive
     - name: install Python
       run: sudo apt-get update -qq && sudo apt-get install -qq python3
-    - name: make
+    - name: Build C-BSP
       run: make all CFLAGS='-ftest-coverage -fprofile-arcs -Wall' LDFLAGS='-ftest-coverage -fprofile-arcs' CC='gcc -std=gnu11'
-    - name: make bspcomp
+    - name: Build bspcomp
       run: make bspcomp/bspcomp CFLAGS=''
-    - name: make check
+    - name: Run tests
       run: make check
+    - name: Upload coverage report to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        verbose: true
