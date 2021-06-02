@@ -317,7 +317,7 @@ static void postexec_cb(struct bsp_ec *ec, struct bsp_vm *vm, struct bsp_opcode 
 	}
 
 	bsp_opflags_t flags = bsp_op_get_flags(opc);
-	if (flags & BSP_OPFLAG_TIGHT_LOOP) {
+	if (flags & BSP_OPFLAG_STATIONARY) {
 		if (pc_log_used < COUNT(pc_log)) {
 			pc_log[pc_log_used++] = vm->pc;
 		}
