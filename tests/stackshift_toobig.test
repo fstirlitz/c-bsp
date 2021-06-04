@@ -1,0 +1,7 @@
+	set #0, 0xffffffff
+loop:
+	stackshift 0x100000
+	decrement #0
+	jumpnz #0, loop
+	jump 0
+;;;; exit fatal
