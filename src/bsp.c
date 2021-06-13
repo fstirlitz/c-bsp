@@ -13,7 +13,7 @@
 #include <signal.h>
 #include <locale.h>
 #include <langinfo.h>
-#include <iconv.h>
+#include <uchar.h>
 
 #include "lib/vm.h"
 #include "lib/dis.h"
@@ -341,78 +341,35 @@ static void fetch_cb(struct bsp_ec *ec, struct bsp_vm *vm) {
 		bsp_die(ec, "limit of nesting BSP patches (%u) exceeded", nest_limit);
 }
 
-static iconv_t iconv_cd = (iconv_t)-1;
-
-static size_t check_utf8(const char *msg, size_t length) {
-	const char *cp = msg;
-
-	for (; cp < msg + length; ++cp) {
-		uint8_t ch = *cp;
-		// specifically allow whitespace
-		if (ch == '\r' || ch == '\n' || ch == '\t')
-			continue;
-
-		// disallow other control characters (ANSI bombs, anyone?)
-		if (ch < 0x20)
-			break;
-
-		// disallow C1 control set as well (U+009B ≃ U+001B U+005B on some terminals)
-		if (ch == 0xc2) {
-			ch = *(cp + 1);
-			if (0x80 <= ch && ch <= 0x9f)
-				break;
-		}
-	}
-
-	return cp - msg;
-}
-
 static void print_utf8(const char *msg, size_t length) {
 	const char *msgp = msg;
+	const char *fin = msg + length;
 	char buffer[1024], *bufp = buffer;
-	size_t bufl = sizeof(buffer);
+	mbstate_t mbs;
 
-	while (length) {
-		size_t valid_chars = check_utf8(msgp, length);
-		size_t inl = valid_chars;
+	memset(&mbs, 0, sizeof(mbs));
 
-		bufp = buffer; bufl = sizeof(buffer);
-		if (iconv_cd != (iconv_t)-1) {
-			iconv(iconv_cd, (char **)&msgp, &inl, &bufp, &bufl);
-		} else {
-			size_t adv = inl < sizeof(buffer) ? inl : sizeof(buffer);
-			memcpy(buffer, msgp, adv);
-
-			bufp += adv;
-			bufl -= adv;
-			msgp += adv;
-			inl  -= adv;
+	while (msgp < fin) {
+		if ((buffer + sizeof(buffer) - bufp) < MB_CUR_MAX) {
+			fwrite(buffer, bufp - buffer, 1, stdout);
+			bufp = buffer;
 		}
 
-		if (bufl == sizeof(buffer)) {
+		int32_t cp = utf8_decode_char(&msgp, fin - msgp);
+		if (cp < 0)
+			abort();
+		if (cp < 0x20 || (cp >= 0x80 && cp <= 0x9f))
+			cp = '?';
+
+		size_t n = c32rtomb(bufp, cp, &mbs);
+		if (n == -1 && errno == EILSEQ) {
 			*bufp++ = '?';
-
-			uint8_t ch = *msgp;
-			size_t s = 1;
-			if ((ch & 0xe0) == 0xc0)
-				s = 2;
-			else if ((ch & 0xf0) == 0xe0)
-				s = 3;
-			else if ((ch & 0xf8) == 0xf0)
-				s = 4;
-			msgp += s; length -= s;
 		} else {
-			length -= valid_chars - inl;
+			bufp += n;
 		}
-
-		fwrite(buffer, bufp - buffer, 1, stdout);
 	}
 
-	if (iconv_cd != (iconv_t)-1) {
-		bufp = buffer; bufl = sizeof(buffer);
-		iconv(iconv_cd, NULL, NULL, &bufp, &bufl);
-		fwrite(buffer, bufp - buffer, 1, stdout);
-	}
+	fwrite(buffer, bufp - buffer, 1, stdout);
 }
 
 static void print_cb(struct bsp_ec *ec, struct bsp_vm *vm, const char *msg, size_t length) {
@@ -795,18 +752,6 @@ static void scratch_commit(void) {
 
 int main(int argc, char *argv[]) {
 	setlocale(LC_ALL, "");
-	const char *codeset = nl_langinfo(CODESET);
-
-	if (strcasecmp(codeset, "UTF-8") != 0) {
-#if defined(__GLIBC__)
-		char tr_codeset[strlen(codeset) + sizeof("//TRANSLIT")];
-		snprintf(tr_codeset, sizeof(tr_codeset), "%s//TRANSLIT", codeset);
-		iconv_cd = iconv_open(tr_codeset, "utf-8");
-
-		if (iconv_cd == (iconv_t)-1)
-#endif
-		iconv_cd = iconv_open(codeset, "utf-8");
-	}
 
 	argv0 = argv[0];
 	parse_cmdline(argv);

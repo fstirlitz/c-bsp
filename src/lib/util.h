@@ -155,4 +155,59 @@ inline static void *grow_alloc(void *p, size_t *cap, size_t grow_by, size_t elem
 	}
 }
 
+#define UTF8_ERR_PAYLOAD_MASK      UINT32_C(0x00ffffff)
+#define UTF8_ERR_TYPE_MASK         UINT32_C(0x8f000000)
+#define UTF8_ERR_EOF              (int32_t)(UINT32_C(0x8b000000))
+#define UTF8_ERR_SURROGATE(b)     (int32_t)(UINT32_C(0x8c000000) | (b))
+#define UTF8_ERR_INVALID_UNIT(b)  (int32_t)(UINT32_C(0x8d000000) | (b))
+#define UTF8_ERR_OVERLONG(b)      (int32_t)(UINT32_C(0x8e000000) | (b))
+#define UTF8_ERR_OVERFLOW(b)      (int32_t)(UINT32_C(0x8f000000) | (b))
+
+inline static int32_t utf8_decode_char(const char **data, size_t len) {
+	const unsigned char *p = (const unsigned char *)*data;
+	const unsigned char *fin = p + len;
+
+	uint_fast8_t b = *p++, rem = 0;
+	int32_t cpoint, min;
+
+	/*  */ if ((b & 0x80) == 0x00) {
+		cpoint = b;
+		min = 0;
+		rem = 0;
+	} else if ((b & 0xe0) == 0xc0) {
+		cpoint = b & 0x1f;
+		min = 0x80;
+		rem = 1;
+	} else if ((b & 0xf0) == 0xe0) {
+		cpoint = b & 0x0f;
+		min = 0x800;
+		rem = 2;
+	} else if ((b & 0xf8) == 0xf0) {
+		cpoint = b & 0x07;
+		min = 0x10000;
+		rem = 3;
+	} else {
+		return UTF8_ERR_INVALID_UNIT(*(p - 1));
+	}
+
+	while (rem--) {
+		if (p >= fin)
+			return UTF8_ERR_EOF;
+		if ((*p & 0xc0) != 0x80)
+			return UTF8_ERR_INVALID_UNIT(*p);
+		cpoint <<= 6;
+		cpoint |= *p++ & 0x3f;
+	}
+
+	if (cpoint < min)
+		return UTF8_ERR_OVERLONG(cpoint);
+	if (0xd800 <= cpoint && cpoint <= 0xdfff)
+		return UTF8_ERR_SURROGATE(cpoint);
+	if (cpoint > 0x10ffff)
+		return UTF8_ERR_OVERFLOW(cpoint);
+
+	*data = (const void *)p;
+	return cpoint;
+}
+
 #endif
