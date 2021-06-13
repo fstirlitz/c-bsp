@@ -24,46 +24,40 @@
 	)
 
 static void uop_validate_utf8(struct bsp_ec *ec, const char *data, size_t len) {
-	const uint8_t *fin = (const uint8_t *)data + len;
-	const uint8_t *p = (const uint8_t *)data;
+	const char *fin = data + len;
 
-	while (p < fin) {
-		uint_fast8_t b = *p++, rem = 0;
-		uint32_t cpoint, min;
-
-		/*  */ if ((b & 0x80) == 0x00) {
+	while (data < fin) {
+		int32_t e = utf8_decode_char(&data, fin - data);
+		if (e >= 0)
 			continue;
-		} else if ((b & 0xe0) == 0xc0) {
-			cpoint = b & 0x1f;
-			min = 0x80;
-			rem = 1;
-		} else if ((b & 0xf0) == 0xe0) {
-			cpoint = b & 0x0f;
-			min = 0x800;
-			rem = 2;
-		} else if ((b & 0xf8) == 0xf0) {
-			cpoint = b & 0x07;
-			min = 0x10000;
-			rem = 3;
-		} else {
-			bsp_die(ec, "invalid UTF-8 code unit 0x%02x", *(p - 1));
+
+		const char *msg = "invalid UTF-8";
+
+		switch (e & UTF8_ERR_TYPE_MASK) {
+
+		case UTF8_ERR_EOF:
+			msg = "invalid UTF-8: premature end of string";
+			break;
+
+		case UTF8_ERR_SURROGATE(0):
+			msg = "invalid UTF-8: surrogate code point U+%04X";
+			break;
+
+		case UTF8_ERR_INVALID_UNIT(0):
+			msg = "invalid UTF-8: bad code unit 0x%02X";
+			break;
+
+		case UTF8_ERR_OVERLONG(0):
+			msg = "invalid UTF-8: overlong sequence for code point U+%04X";
+			break;
+
+		case UTF8_ERR_OVERFLOW(0):
+			msg = "invalid UTF-8: too large code point U+%04X";
+			break;
+
 		}
 
-		while (rem--) {
-			if (p >= fin)
-				bsp_die(ec, "broken UTF-8 string");
-			if ((*p & 0xc0) != 0x80)
-				bsp_die(ec, "invalid UTF-8 code unit 0x%02x", *p);
-			cpoint <<= 6;
-			cpoint |= *p++ & 0x3f;
-		}
-
-		if (cpoint < min)
-			bsp_die(ec, "overlong UTF-8 sequence for scalar value U+%04X", cpoint);
-		if (0xd800 <= cpoint && cpoint <= 0xdfff)
-			bsp_die(ec, "invalid (surrogate) Unicode scalar value U+%04X", cpoint);
-		if (cpoint > 0x10ffff)
-			bsp_die(ec, "invalid Unicode scalar value U+%04X", cpoint);
+		bsp_die(ec, msg, e & UTF8_ERR_PAYLOAD_MASK);
 	}
 }
 
