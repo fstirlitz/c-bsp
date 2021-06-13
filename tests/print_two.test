@@ -1,0 +1,10 @@
+	print one
+	print two
+	exit #0
+one:
+	string "one"
+two:
+	string "two"
+;;;; output
+one
+two
